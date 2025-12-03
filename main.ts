@@ -1,61 +1,115 @@
-// Use SpriteKind.create() to create a unique kind for each Sprite
-const GateKind = SpriteKind.create();
+// Sprite kinds for the game
 const PlayerKind = SpriteKind.create();
+const CheeseKind = SpriteKind.create();  // Obstacles - yucky cheese!
+const FruitKind = SpriteKind.create();   // Good stuff - delicious fruits!
 
+// Set a nice sky blue background
 scene.setBackgroundColor(9);
+
 showControls();
 startGame();
 
 function showControls() {
-    // showLongText automatically pauses until A is pressed
-    game.showLongText("Press A to jump\n \nTry to avoid the gates!", DialogLayout.Center);
+    game.showLongText(
+        "Use UP/DOWN to move\n \nCatch fruits for points!\n \nAvoid the cheese!",
+        DialogLayout.Center
+    );
 }
 
 function startGame() {
-    // Create the player sprite using the "playerImage" asset
-    const mySprite = sprites.create(assets.image`playerImage`, PlayerKind);
-    mySprite.left = 4;
-    mySprite.setFlag(SpriteFlag.StayInScreen, true);
-    mySprite.ay = 500;
+    // Create the player sprite (a colorful square for now)
+    // We'll draw a simple player - can be replaced with Eliott's face later!
+    const playerImage = image.create(16, 16);
+    playerImage.fill(7);  // White fill
+    playerImage.drawRect(0, 0, 16, 16, 8);  // Red border
+    // Add a simple smiley face
+    playerImage.setPixel(4, 5, 15);   // Left eye
+    playerImage.setPixel(11, 5, 15);  // Right eye
+    playerImage.setPixel(4, 10, 15);  // Smile left
+    playerImage.setPixel(5, 11, 15);
+    playerImage.setPixel(6, 11, 15);
+    playerImage.setPixel(7, 11, 15);
+    playerImage.setPixel(8, 11, 15);
+    playerImage.setPixel(9, 11, 15);
+    playerImage.setPixel(10, 11, 15);
+    playerImage.setPixel(11, 10, 15); // Smile right
 
-    // When A is pressed, make the player sprite jump and play a flapping animation
-    controller.A.onEvent(ControllerButtonEvent.Pressed, () => {
-        mySprite.vy = -100;
-        animation.runImageAnimation(mySprite, assets.animation`playerAnimation`, 50)
+    const player = sprites.create(playerImage, PlayerKind);
+    player.left = 10;
+    player.y = screen.height / 2;
+    player.setFlag(SpriteFlag.StayInScreen, true);
+
+    // Player movement with UP and DOWN
+    controller.up.onEvent(ControllerButtonEvent.Pressed, () => {
+        player.vy = -80;
+    });
+    controller.up.onEvent(ControllerButtonEvent.Released, () => {
+        if (player.vy < 0) player.vy = 0;
+    });
+    controller.down.onEvent(ControllerButtonEvent.Pressed, () => {
+        player.vy = 80;
+    });
+    controller.down.onEvent(ControllerButtonEvent.Released, () => {
+        if (player.vy > 0) player.vy = 0;
     });
 
-    // Spawn a gate every 2 seconds
+    // Spawn cheese obstacles every 1.5 seconds
+    game.onUpdateInterval(1500, () => {
+        spawnCheese();
+    });
+
+    // Spawn fruits every 2 seconds
     game.onUpdateInterval(2000, () => {
-        // Create a gate with an empty image that spans the height of the screen
-        const gate = sprites.create(image.create(12, screen.height), GateKind);
-
-        // Select a y value for our gate opening to start
-        const gapHeight = 50;
-        const gapStart = randint(0, screen.height - gapHeight);
-
-        // Draw the gate on the empty image
-        gate.image.fillRect(2, 0, 8, screen.height, 6);
-        gate.image.fillRect(2, gapStart, 8, 50, 0);
-        gate.image.fillRect(0, gapStart - 5, 12, 5, 6);
-        gate.image.fillRect(0, gapStart + gapHeight, 12, 5, 6);
-
-        // Move the gate to the right side of the screen and give it velocity
-        gate.left = screen.width;
-        gate.vx = -50;
-
-        // Turn on the AutoDestroy flag so that gates are automatically destroyed
-        // when they leave the screen
-        gate.setFlag(SpriteFlag.AutoDestroy, true);
+        spawnFruit();
     });
 
-    // End the game when the player overlaps a gate
-    sprites.onOverlap(PlayerKind, GateKind, (sprite, otherSprite) => {
-        game.over();
+    // COLLISION: Player hits cheese = GAME OVER!
+    sprites.onOverlap(PlayerKind, CheeseKind, (sprite, cheese) => {
+        cheese.destroy(effects.disintegrate, 200);
+        game.over(false);  // false = player lost
     });
 
-    // When a gate is auto destroyed, increase our score by 1
-    sprites.onDestroyed(GateKind, () => {
+    // COLLISION: Player catches fruit = +1 POINT!
+    sprites.onOverlap(PlayerKind, FruitKind, (sprite, fruit) => {
+        fruit.destroy(effects.spray, 100);
         info.changeScoreBy(1);
+        music.baDing.play();
     });
+
+    // Initialize score
+    info.setScore(0);
 }
 
+function spawnCheese() {
+    // Create a cheese obstacle (yellow square placeholder)
+    const cheeseImage = image.create(12, 12);
+    cheeseImage.fill(5);  // Yellow fill for cheese
+    cheeseImage.drawRect(0, 0, 12, 12, 4);  // Orange border
+    // Add some holes to make it look like cheese
+    cheeseImage.setPixel(3, 3, 0);
+    cheeseImage.setPixel(8, 5, 0);
+    cheeseImage.setPixel(5, 8, 0);
+    cheeseImage.setPixel(9, 9, 0);
+
+    const cheese = sprites.create(cheeseImage, CheeseKind);
+    cheese.right = screen.width + 12;
+    cheese.y = randint(10, screen.height - 10);
+    cheese.vx = -60;  // Move left
+    cheese.setFlag(SpriteFlag.AutoDestroy, true);
+}
+
+function spawnFruit() {
+    // Create a fruit (red circle-ish - apple placeholder)
+    const fruitImage = image.create(10, 10);
+    // Draw a simple apple shape
+    fruitImage.fillRect(3, 2, 4, 7, 2);  // Red body
+    fruitImage.fillRect(2, 3, 6, 5, 2);
+    fruitImage.fillRect(4, 1, 2, 2, 7);  // White highlight
+    fruitImage.setPixel(5, 0, 6);  // Green stem
+
+    const fruit = sprites.create(fruitImage, FruitKind);
+    fruit.right = screen.width + 10;
+    fruit.y = randint(10, screen.height - 10);
+    fruit.vx = -50;  // Move left (slightly slower than cheese)
+    fruit.setFlag(SpriteFlag.AutoDestroy, true);
+}
