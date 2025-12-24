@@ -54,9 +54,9 @@ function startGame() {
     });
 
     // Spawn cheese obstacles every 1.5 seconds
-    game.onUpdateInterval(1500, () => {
-        spawnCheese();
-    });
+    // game.onUpdateInterval(1500, () => {
+    //     spawnCheese();
+    // });
 
     // Spawn fruits every 2 seconds
     game.onUpdateInterval(2000, () => {
