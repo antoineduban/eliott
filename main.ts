@@ -3,9 +3,9 @@
 // ============================================
 
 // Game state
-let currentGame = 0; // 0 = menu, 1 = fruit catcher, 2 = space shooter
-let menuSelection = 0;
-const TOTAL_GAMES = 2;
+let currentGame = 0 // 0 = menu, 1 = fruit catcher, 2 = space shooter
+let menuSelection = 0
+const TOTAL_GAMES = 2
 
 // Menu cursor
 const cursorImg = img`
@@ -20,58 +20,58 @@ const cursorImg = img`
     . . 2 . . . . .
 `
 
-const MenuCursorKind = SpriteKind.create();
-let menuCursor: Sprite;
+const MenuCursorKind = SpriteKind.create()
+let menuCursor: Sprite
 
 // ============================================
 // MENU FUNCTIONS
 // ============================================
 
 function showMenu() {
-    currentGame = 0;
+    currentGame = 0
 
     // Clear all sprites
-    sprites.destroyAllSpritesOfKind(FruitCatcher.PlayerKind);
-    sprites.destroyAllSpritesOfKind(FruitCatcher.FruitKind);
-    sprites.destroyAllSpritesOfKind(FruitCatcher.CheeseKind);
-    sprites.destroyAllSpritesOfKind(SpaceShooter.ShipKind);
-    sprites.destroyAllSpritesOfKind(SpaceShooter.LaserKind);
-    sprites.destroyAllSpritesOfKind(SpaceShooter.AsteroidKind);
-    sprites.destroyAllSpritesOfKind(SpaceShooter.AlienKind);
-    sprites.destroyAllSpritesOfKind(MenuCursorKind);
+    sprites.destroyAllSpritesOfKind(FruitCatcher.PlayerKind)
+    sprites.destroyAllSpritesOfKind(FruitCatcher.FruitKind)
+    sprites.destroyAllSpritesOfKind(FruitCatcher.CheeseKind)
+    sprites.destroyAllSpritesOfKind(SpaceShooter.ShipKind)
+    sprites.destroyAllSpritesOfKind(SpaceShooter.LaserKind)
+    sprites.destroyAllSpritesOfKind(SpaceShooter.AsteroidKind)
+    sprites.destroyAllSpritesOfKind(SpaceShooter.AlienKind)
+    sprites.destroyAllSpritesOfKind(MenuCursorKind)
 
     // Stop any screen effects
-    effects.starField.endScreenEffect();
+    effects.starField.endScreenEffect()
 
     // Dark background for menu
-    scene.setBackgroundColor(15);
+    scene.setBackgroundColor(15)
 
     // Show title
-    game.splash("ELIOTT'S GAMES", "Use UP/DOWN, press A!");
+    game.splash("ELIOTT'S GAMES", "Use UP/DOWN, press A!")
 
     // Menu screen
-    scene.setBackgroundColor(15);
+    scene.setBackgroundColor(15)
 
     // Create cursor
-    menuCursor = sprites.create(cursorImg, MenuCursorKind);
-    menuCursor.x = 25;
-    updateMenuCursor();
+    menuCursor = sprites.create(cursorImg, MenuCursorKind)
+    menuCursor.x = 25
+    updateMenuCursor()
 }
 
 function updateMenuCursor() {
-    menuCursor.y = 45 + menuSelection * 25;
+    menuCursor.y = 45 + menuSelection * 25
 }
 
 function startSelectedGame() {
     // Destroy menu cursor
-    sprites.destroyAllSpritesOfKind(MenuCursorKind);
+    sprites.destroyAllSpritesOfKind(MenuCursorKind)
 
     if (menuSelection === 0) {
-        currentGame = 1;
-        FruitCatcher.start();
+        currentGame = 1
+        FruitCatcher.start()
     } else if (menuSelection === 1) {
-        currentGame = 2;
-        SpaceShooter.start();
+        currentGame = 2
+        SpaceShooter.start()
     }
 }
 
@@ -80,124 +80,128 @@ function startSelectedGame() {
 // ============================================
 
 // UP button
-controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
+controller.up.onEvent(ControllerButtonEvent.Pressed, () => {
     if (currentGame === 0) {
-        menuSelection = (menuSelection - 1 + TOTAL_GAMES) % TOTAL_GAMES;
-        updateMenuCursor();
-        music.baDing.play();
+        menuSelection = (menuSelection - 1 + TOTAL_GAMES) % TOTAL_GAMES
+        updateMenuCursor()
+        music.baDing.play()
     } else if (currentGame === 1) {
-        FruitCatcher.handleUp(true);
+        FruitCatcher.handleUp(true)
     }
-});
+})
 
-controller.up.onEvent(ControllerButtonEvent.Released, function () {
+controller.up.onEvent(ControllerButtonEvent.Released, () => {
     if (currentGame === 1) {
-        FruitCatcher.handleUp(false);
+        FruitCatcher.handleUp(false)
     }
-});
+})
 
 // DOWN button
-controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
+controller.down.onEvent(ControllerButtonEvent.Pressed, () => {
     if (currentGame === 0) {
-        menuSelection = (menuSelection + 1) % TOTAL_GAMES;
-        updateMenuCursor();
-        music.baDing.play();
+        menuSelection = (menuSelection + 1) % TOTAL_GAMES
+        updateMenuCursor()
+        music.baDing.play()
     } else if (currentGame === 1) {
-        FruitCatcher.handleDown(true);
+        FruitCatcher.handleDown(true)
     }
-});
+})
 
-controller.down.onEvent(ControllerButtonEvent.Released, function () {
+controller.down.onEvent(ControllerButtonEvent.Released, () => {
     if (currentGame === 1) {
-        FruitCatcher.handleDown(false);
+        FruitCatcher.handleDown(false)
     }
-});
+})
 
 // LEFT button
-controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
+controller.left.onEvent(ControllerButtonEvent.Pressed, () => {
     if (currentGame === 2) {
-        SpaceShooter.handleLeft(true);
+        SpaceShooter.handleLeft(true)
     }
-});
+})
 
-controller.left.onEvent(ControllerButtonEvent.Released, function () {
+controller.left.onEvent(ControllerButtonEvent.Released, () => {
     if (currentGame === 2) {
-        SpaceShooter.handleLeft(false);
+        SpaceShooter.handleLeft(false)
     }
-});
+})
 
 // RIGHT button
-controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
+controller.right.onEvent(ControllerButtonEvent.Pressed, () => {
     if (currentGame === 2) {
-        SpaceShooter.handleRight(true);
+        SpaceShooter.handleRight(true)
     }
-});
+})
 
-controller.right.onEvent(ControllerButtonEvent.Released, function () {
+controller.right.onEvent(ControllerButtonEvent.Released, () => {
     if (currentGame === 2) {
-        SpaceShooter.handleRight(false);
+        SpaceShooter.handleRight(false)
     }
-});
+})
 
 // A button (select / shoot)
-controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+controller.A.onEvent(ControllerButtonEvent.Pressed, () => {
     if (currentGame === 0) {
-        startSelectedGame();
+        startSelectedGame()
     } else if (currentGame === 2) {
-        SpaceShooter.handleShoot();
+        SpaceShooter.handleShoot()
     }
-});
+})
 
 // ============================================
 // SPAWNING LOOPS
 // ============================================
 
 // Fruit Catcher spawning
-game.onUpdateInterval(1000, function () {
+game.onUpdateInterval(1000, () => {
     if (currentGame === 1) {
-        FruitCatcher.spawnFruit();
+        FruitCatcher.spawnFruit()
     }
-});
+})
 
-game.onUpdateInterval(2000, function () {
+game.onUpdateInterval(2000, () => {
     if (currentGame === 1) {
-        FruitCatcher.spawnCheese();
+        FruitCatcher.spawnCheese()
     }
-});
+})
 
 // Space Shooter spawning
-game.onUpdateInterval(1500, function () {
+game.onUpdateInterval(1500, () => {
     if (currentGame === 2) {
-        SpaceShooter.spawnAsteroid();
+        SpaceShooter.spawnAsteroid()
     }
-});
+})
 
-game.onUpdateInterval(3000, function () {
+game.onUpdateInterval(3000, () => {
     if (currentGame === 2) {
-        SpaceShooter.spawnAlien();
+        SpaceShooter.spawnAlien()
     }
-});
+})
 
 // ============================================
 // GAME OVER -> RESTART
 // ============================================
 
 // Configure game over screen to show score and allow replay
-game.setGameOverScoringType(game.ScoringType.HighScore);
+game.setGameOverScoringType(game.ScoringType.HighScore)
 
 // ============================================
 // DRAW MENU TEXT
 // ============================================
 
-game.onPaint(function () {
+game.onPaint(() => {
     if (currentGame === 0) {
-        image.screenImage().printCenter("1. Fruit Catcher", 40, 1, image.font8);
-        image.screenImage().printCenter("2. Space Shooter", 65, 1, image.font8);
+        image
+            .screenImage()
+            .printCenter("1. FRUITS ET FROMAGE", 40, 1, image.font8)
+        image
+            .screenImage()
+            .printCenter("2. VAISSEAU SPATIAL", 65, 1, image.font8)
     }
-});
+})
 
 // ============================================
 // START!
 // ============================================
 
-showMenu();
+showMenu()

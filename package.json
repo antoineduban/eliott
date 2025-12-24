@@ -1,0 +1,13 @@
+{
+  "name": "eliott-games",
+  "version": "1.0.0",
+  "description": "Eliott's MakeCode Arcade game launcher",
+  "scripts": {
+    "lint": "biome check --write .",
+    "lint:check": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.10"
+  }
+}
