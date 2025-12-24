@@ -1,170 +1,412 @@
 // Sprite kinds for the game
-const PlayerKind = SpriteKind.create();
-const CheeseKind = SpriteKind.create();  // Obstacles - yucky cheese!
-const FruitKind = SpriteKind.create();   // Good stuff - delicious fruits!
+const PlayerKind = SpriteKind.create()
+const FruitKind = SpriteKind.create()
+// const CheeseKind = SpriteKind.create() // Disabled for now
 
 // Set a nice sky blue background
-scene.setBackgroundColor(9);
+scene.setBackgroundColor(9)
 
-showControls();
-startGame();
+// Create the player sprite
+let playerImage = image.create(16, 16)
+playerImage.fill(7)
+playerImage.drawRect(0, 0, 16, 16, 8)
+playerImage.setPixel(4, 5, 15)
+playerImage.setPixel(11, 5, 15)
+playerImage.setPixel(4, 10, 15)
+playerImage.setPixel(5, 11, 15)
+playerImage.setPixel(6, 11, 15)
+playerImage.setPixel(7, 11, 15)
+playerImage.setPixel(8, 11, 15)
+playerImage.setPixel(9, 11, 15)
+playerImage.setPixel(10, 11, 15)
+playerImage.setPixel(11, 10, 15)
 
-function showControls() {
-    game.showLongText(
-        "Use UP/DOWN to move\n \nCatch fruits for points!\n \nAvoid the cheese!",
-        DialogLayout.Center
-    );
-}
+let player = sprites.create(playerImage, PlayerKind)
+player.left = 10
+player.y = screen.height / 2
+player.setFlag(SpriteFlag.StayInScreen, true)
 
-function startGame() {
-    // Create the player sprite (a colorful square for now)
-    // We'll draw a simple player - can be replaced with Eliott's face later!
-    const playerImage = image.create(16, 16);
-    playerImage.fill(7);  // White fill
-    playerImage.drawRect(0, 0, 16, 16, 8);  // Red border
-    // Add a simple smiley face
-    playerImage.setPixel(4, 5, 15);   // Left eye
-    playerImage.setPixel(11, 5, 15);  // Right eye
-    playerImage.setPixel(4, 10, 15);  // Smile left
-    playerImage.setPixel(5, 11, 15);
-    playerImage.setPixel(6, 11, 15);
-    playerImage.setPixel(7, 11, 15);
-    playerImage.setPixel(8, 11, 15);
-    playerImage.setPixel(9, 11, 15);
-    playerImage.setPixel(10, 11, 15);
-    playerImage.setPixel(11, 10, 15); // Smile right
+// Player movement with UP and DOWN
+controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
+    player.vy = -80
+})
+controller.up.onEvent(ControllerButtonEvent.Released, function () {
+    player.vy = 0
+})
+controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
+    player.vy = 80
+})
+controller.down.onEvent(ControllerButtonEvent.Released, function () {
+    player.vy = 0
+})
 
-    const player = sprites.create(playerImage, PlayerKind);
-    player.left = 10;
-    player.y = screen.height / 2;
-    player.setFlag(SpriteFlag.StayInScreen, true);
+// Spawn fruits every 1 second
+game.onUpdateInterval(1000, function () {
+    let fruitImg: Image
+    let fruitType = randint(1, 4)
 
-    // Player movement with UP and DOWN
-    controller.up.onEvent(ControllerButtonEvent.Pressed, () => {
-        player.vy = -80;
-    });
-    controller.up.onEvent(ControllerButtonEvent.Released, () => {
-        if (player.vy < 0) player.vy = 0;
-    });
-    controller.down.onEvent(ControllerButtonEvent.Pressed, () => {
-        player.vy = 80;
-    });
-    controller.down.onEvent(ControllerButtonEvent.Released, () => {
-        if (player.vy > 0) player.vy = 0;
-    });
-
-    // Spawn cheese obstacles every 1.5 seconds
-    // game.onUpdateInterval(1500, () => {
-    //     spawnCheese();
-    // });
-
-    // Spawn fruits every 2 seconds
-    game.onUpdateInterval(2000, () => {
-        spawnFruit();
-    });
-
-    // COLLISION: Player hits cheese = GAME OVER!
-    sprites.onOverlap(PlayerKind, CheeseKind, (sprite, cheese) => {
-        cheese.destroy(effects.disintegrate, 200);
-        game.over(false);  // false = player lost
-    });
-
-    // COLLISION: Player catches fruit = +1 POINT!
-    sprites.onOverlap(PlayerKind, FruitKind, (sprite, fruit) => {
-        fruit.destroy(effects.spray, 100);
-        info.changeScoreBy(1);
-        music.baDing.play();
-    });
-
-    // Initialize score
-    info.setScore(0);
-}
-
-function spawnCheese() {
-    // Create a cheese obstacle (yellow square placeholder)
-    const cheeseImage = image.create(12, 12);
-    cheeseImage.fill(5);  // Yellow fill for cheese
-    cheeseImage.drawRect(0, 0, 12, 12, 4);  // Orange border
-    // Add some holes to make it look like cheese
-    cheeseImage.setPixel(3, 3, 0);
-    cheeseImage.setPixel(8, 5, 0);
-    cheeseImage.setPixel(5, 8, 0);
-    cheeseImage.setPixel(9, 9, 0);
-
-    const cheese = sprites.create(cheeseImage, CheeseKind);
-    cheese.right = screen.width + 12;
-    cheese.y = randint(10, screen.height - 10);
-    cheese.vx = -60;  // Move left
-    cheese.setFlag(SpriteFlag.AutoDestroy, true);
-}
-
-function spawnFruit() {
-    // Randomly pick a fruit type
-    const fruitType = randint(0, 3);
-    let fruitImage: Image;
-
-    if (fruitType === 0) {
-        // Apple (small - 10x10)
-        fruitImage = image.create(10, 10);
-        fruitImage.fillRect(3, 2, 4, 7, 2);  // Red body
-        fruitImage.fillRect(2, 3, 6, 5, 2);
-        fruitImage.fillRect(4, 1, 2, 2, 7);  // White highlight
-        fruitImage.setPixel(5, 0, 6);  // Green stem
-    } else if (fruitType === 1) {
-        // Pineapple (tall - 10x16)
-        fruitImage = image.create(10, 16);
-        // Green leaves on top
-        fruitImage.fillRect(4, 0, 2, 3, 7);
-        fruitImage.fillRect(3, 1, 4, 2, 7);
-        fruitImage.fillRect(2, 2, 6, 2, 7);
-        // Yellow body
-        fruitImage.fillRect(2, 4, 6, 10, 5);
-        fruitImage.fillRect(3, 4, 4, 11, 5);
-        // Diamond pattern (orange)
-        fruitImage.setPixel(3, 6, 4);
-        fruitImage.setPixel(6, 6, 4);
-        fruitImage.setPixel(4, 8, 4);
-        fruitImage.setPixel(5, 8, 4);
-        fruitImage.setPixel(3, 10, 4);
-        fruitImage.setPixel(6, 10, 4);
-        fruitImage.setPixel(4, 12, 4);
-        fruitImage.setPixel(5, 12, 4);
-    } else if (fruitType === 2) {
-        // Coconut (medium - 12x12)
-        fruitImage = image.create(12, 12);
-        // Brown round body
-        fruitImage.fillRect(3, 1, 6, 10, 14);
-        fruitImage.fillRect(2, 2, 8, 8, 14);
-        fruitImage.fillRect(1, 3, 10, 6, 14);
-        // Three dark spots (eyes and mouth of coconut)
-        fruitImage.setPixel(4, 4, 15);
-        fruitImage.setPixel(7, 4, 15);
-        fruitImage.setPixel(5, 6, 15);
-        fruitImage.setPixel(6, 6, 15);
+    if (fruitType == 1) {
+        // Apple - round shape with stem
+        fruitImg = image.create(10, 11)
+        // Stem
+        fruitImg.setPixel(5, 0, 7)
+        fruitImg.setPixel(5, 1, 7)
+        // Leaf
+        fruitImg.setPixel(6, 1, 7)
+        fruitImg.setPixel(7, 0, 7)
+        // Apple body (round)
+        fruitImg.setPixel(4, 2, 2)
+        fruitImg.setPixel(5, 2, 2)
+        fruitImg.setPixel(3, 3, 2)
+        fruitImg.setPixel(4, 3, 2)
+        fruitImg.setPixel(5, 3, 2)
+        fruitImg.setPixel(6, 3, 2)
+        fruitImg.setPixel(2, 4, 2)
+        fruitImg.setPixel(3, 4, 2)
+        fruitImg.setPixel(4, 4, 2)
+        fruitImg.setPixel(5, 4, 2)
+        fruitImg.setPixel(6, 4, 2)
+        fruitImg.setPixel(7, 4, 2)
+        fruitImg.setPixel(1, 5, 2)
+        fruitImg.setPixel(2, 5, 2)
+        fruitImg.setPixel(3, 5, 2)
+        fruitImg.setPixel(4, 5, 2)
+        fruitImg.setPixel(5, 5, 2)
+        fruitImg.setPixel(6, 5, 2)
+        fruitImg.setPixel(7, 5, 2)
+        fruitImg.setPixel(8, 5, 2)
+        fruitImg.setPixel(1, 6, 2)
+        fruitImg.setPixel(2, 6, 2)
+        fruitImg.setPixel(3, 6, 2)
+        fruitImg.setPixel(4, 6, 2)
+        fruitImg.setPixel(5, 6, 2)
+        fruitImg.setPixel(6, 6, 2)
+        fruitImg.setPixel(7, 6, 2)
+        fruitImg.setPixel(8, 6, 2)
+        fruitImg.setPixel(1, 7, 2)
+        fruitImg.setPixel(2, 7, 2)
+        fruitImg.setPixel(3, 7, 2)
+        fruitImg.setPixel(4, 7, 2)
+        fruitImg.setPixel(5, 7, 2)
+        fruitImg.setPixel(6, 7, 2)
+        fruitImg.setPixel(7, 7, 2)
+        fruitImg.setPixel(8, 7, 2)
+        fruitImg.setPixel(2, 8, 2)
+        fruitImg.setPixel(3, 8, 2)
+        fruitImg.setPixel(4, 8, 2)
+        fruitImg.setPixel(5, 8, 2)
+        fruitImg.setPixel(6, 8, 2)
+        fruitImg.setPixel(7, 8, 2)
+        fruitImg.setPixel(3, 9, 2)
+        fruitImg.setPixel(4, 9, 2)
+        fruitImg.setPixel(5, 9, 2)
+        fruitImg.setPixel(6, 9, 2)
+        // Shine
+        fruitImg.setPixel(3, 4, 1)
+        fruitImg.setPixel(3, 5, 1)
+    } else if (fruitType == 2) {
+        // Pineapple - oval body with spiky top
+        fruitImg = image.create(10, 14)
+        // Spiky green leaves
+        fruitImg.setPixel(4, 0, 7)
+        fruitImg.setPixel(5, 0, 7)
+        fruitImg.setPixel(3, 1, 7)
+        fruitImg.setPixel(6, 1, 7)
+        fruitImg.setPixel(2, 1, 7)
+        fruitImg.setPixel(7, 1, 7)
+        fruitImg.setPixel(4, 1, 7)
+        fruitImg.setPixel(5, 1, 7)
+        fruitImg.setPixel(3, 2, 7)
+        fruitImg.setPixel(4, 2, 7)
+        fruitImg.setPixel(5, 2, 7)
+        fruitImg.setPixel(6, 2, 7)
+        // Yellow body (oval)
+        fruitImg.setPixel(4, 3, 5)
+        fruitImg.setPixel(5, 3, 5)
+        fruitImg.setPixel(3, 4, 5)
+        fruitImg.setPixel(4, 4, 5)
+        fruitImg.setPixel(5, 4, 5)
+        fruitImg.setPixel(6, 4, 5)
+        fruitImg.setPixel(2, 5, 5)
+        fruitImg.setPixel(3, 5, 5)
+        fruitImg.setPixel(4, 5, 5)
+        fruitImg.setPixel(5, 5, 5)
+        fruitImg.setPixel(6, 5, 5)
+        fruitImg.setPixel(7, 5, 5)
+        fruitImg.setPixel(2, 6, 5)
+        fruitImg.setPixel(3, 6, 5)
+        fruitImg.setPixel(4, 6, 5)
+        fruitImg.setPixel(5, 6, 5)
+        fruitImg.setPixel(6, 6, 5)
+        fruitImg.setPixel(7, 6, 5)
+        fruitImg.setPixel(2, 7, 5)
+        fruitImg.setPixel(3, 7, 5)
+        fruitImg.setPixel(4, 7, 5)
+        fruitImg.setPixel(5, 7, 5)
+        fruitImg.setPixel(6, 7, 5)
+        fruitImg.setPixel(7, 7, 5)
+        fruitImg.setPixel(2, 8, 5)
+        fruitImg.setPixel(3, 8, 5)
+        fruitImg.setPixel(4, 8, 5)
+        fruitImg.setPixel(5, 8, 5)
+        fruitImg.setPixel(6, 8, 5)
+        fruitImg.setPixel(7, 8, 5)
+        fruitImg.setPixel(2, 9, 5)
+        fruitImg.setPixel(3, 9, 5)
+        fruitImg.setPixel(4, 9, 5)
+        fruitImg.setPixel(5, 9, 5)
+        fruitImg.setPixel(6, 9, 5)
+        fruitImg.setPixel(7, 9, 5)
+        fruitImg.setPixel(2, 10, 5)
+        fruitImg.setPixel(3, 10, 5)
+        fruitImg.setPixel(4, 10, 5)
+        fruitImg.setPixel(5, 10, 5)
+        fruitImg.setPixel(6, 10, 5)
+        fruitImg.setPixel(7, 10, 5)
+        fruitImg.setPixel(3, 11, 5)
+        fruitImg.setPixel(4, 11, 5)
+        fruitImg.setPixel(5, 11, 5)
+        fruitImg.setPixel(6, 11, 5)
+        fruitImg.setPixel(4, 12, 5)
+        fruitImg.setPixel(5, 12, 5)
+        // Orange diamond pattern
+        fruitImg.setPixel(3, 5, 4)
+        fruitImg.setPixel(6, 5, 4)
+        fruitImg.setPixel(4, 7, 4)
+        fruitImg.setPixel(5, 7, 4)
+        fruitImg.setPixel(3, 9, 4)
+        fruitImg.setPixel(6, 9, 4)
+    } else if (fruitType == 3) {
+        // Coconut - round brown with face
+        fruitImg = image.create(12, 12)
+        // Round shape
+        fruitImg.setPixel(4, 0, 14)
+        fruitImg.setPixel(5, 0, 14)
+        fruitImg.setPixel(6, 0, 14)
+        fruitImg.setPixel(7, 0, 14)
+        fruitImg.setPixel(3, 1, 14)
+        fruitImg.setPixel(4, 1, 14)
+        fruitImg.setPixel(5, 1, 14)
+        fruitImg.setPixel(6, 1, 14)
+        fruitImg.setPixel(7, 1, 14)
+        fruitImg.setPixel(8, 1, 14)
+        fruitImg.setPixel(2, 2, 14)
+        fruitImg.setPixel(3, 2, 14)
+        fruitImg.setPixel(4, 2, 14)
+        fruitImg.setPixel(5, 2, 14)
+        fruitImg.setPixel(6, 2, 14)
+        fruitImg.setPixel(7, 2, 14)
+        fruitImg.setPixel(8, 2, 14)
+        fruitImg.setPixel(9, 2, 14)
+        fruitImg.setPixel(1, 3, 14)
+        fruitImg.setPixel(2, 3, 14)
+        fruitImg.setPixel(3, 3, 14)
+        fruitImg.setPixel(4, 3, 14)
+        fruitImg.setPixel(5, 3, 14)
+        fruitImg.setPixel(6, 3, 14)
+        fruitImg.setPixel(7, 3, 14)
+        fruitImg.setPixel(8, 3, 14)
+        fruitImg.setPixel(9, 3, 14)
+        fruitImg.setPixel(10, 3, 14)
+        fruitImg.setPixel(1, 4, 14)
+        fruitImg.setPixel(2, 4, 14)
+        fruitImg.setPixel(3, 4, 14)
+        fruitImg.setPixel(4, 4, 14)
+        fruitImg.setPixel(5, 4, 14)
+        fruitImg.setPixel(6, 4, 14)
+        fruitImg.setPixel(7, 4, 14)
+        fruitImg.setPixel(8, 4, 14)
+        fruitImg.setPixel(9, 4, 14)
+        fruitImg.setPixel(10, 4, 14)
+        fruitImg.setPixel(1, 5, 14)
+        fruitImg.setPixel(2, 5, 14)
+        fruitImg.setPixel(3, 5, 14)
+        fruitImg.setPixel(4, 5, 14)
+        fruitImg.setPixel(5, 5, 14)
+        fruitImg.setPixel(6, 5, 14)
+        fruitImg.setPixel(7, 5, 14)
+        fruitImg.setPixel(8, 5, 14)
+        fruitImg.setPixel(9, 5, 14)
+        fruitImg.setPixel(10, 5, 14)
+        fruitImg.setPixel(1, 6, 14)
+        fruitImg.setPixel(2, 6, 14)
+        fruitImg.setPixel(3, 6, 14)
+        fruitImg.setPixel(4, 6, 14)
+        fruitImg.setPixel(5, 6, 14)
+        fruitImg.setPixel(6, 6, 14)
+        fruitImg.setPixel(7, 6, 14)
+        fruitImg.setPixel(8, 6, 14)
+        fruitImg.setPixel(9, 6, 14)
+        fruitImg.setPixel(10, 6, 14)
+        fruitImg.setPixel(1, 7, 14)
+        fruitImg.setPixel(2, 7, 14)
+        fruitImg.setPixel(3, 7, 14)
+        fruitImg.setPixel(4, 7, 14)
+        fruitImg.setPixel(5, 7, 14)
+        fruitImg.setPixel(6, 7, 14)
+        fruitImg.setPixel(7, 7, 14)
+        fruitImg.setPixel(8, 7, 14)
+        fruitImg.setPixel(9, 7, 14)
+        fruitImg.setPixel(10, 7, 14)
+        fruitImg.setPixel(1, 8, 14)
+        fruitImg.setPixel(2, 8, 14)
+        fruitImg.setPixel(3, 8, 14)
+        fruitImg.setPixel(4, 8, 14)
+        fruitImg.setPixel(5, 8, 14)
+        fruitImg.setPixel(6, 8, 14)
+        fruitImg.setPixel(7, 8, 14)
+        fruitImg.setPixel(8, 8, 14)
+        fruitImg.setPixel(9, 8, 14)
+        fruitImg.setPixel(10, 8, 14)
+        fruitImg.setPixel(2, 9, 14)
+        fruitImg.setPixel(3, 9, 14)
+        fruitImg.setPixel(4, 9, 14)
+        fruitImg.setPixel(5, 9, 14)
+        fruitImg.setPixel(6, 9, 14)
+        fruitImg.setPixel(7, 9, 14)
+        fruitImg.setPixel(8, 9, 14)
+        fruitImg.setPixel(9, 9, 14)
+        fruitImg.setPixel(3, 10, 14)
+        fruitImg.setPixel(4, 10, 14)
+        fruitImg.setPixel(5, 10, 14)
+        fruitImg.setPixel(6, 10, 14)
+        fruitImg.setPixel(7, 10, 14)
+        fruitImg.setPixel(8, 10, 14)
+        fruitImg.setPixel(4, 11, 14)
+        fruitImg.setPixel(5, 11, 14)
+        fruitImg.setPixel(6, 11, 14)
+        fruitImg.setPixel(7, 11, 14)
+        // Face - two eyes and mouth
+        fruitImg.setPixel(4, 4, 15)
+        fruitImg.setPixel(7, 4, 15)
+        fruitImg.setPixel(5, 7, 15)
+        fruitImg.setPixel(6, 7, 15)
     } else {
-        // Watermelon slice (large - 16x12)
-        fruitImage = image.create(16, 12);
-        // Green rind (outer curve)
-        fruitImage.fillRect(1, 8, 14, 3, 6);
-        fruitImage.fillRect(0, 9, 16, 2, 6);
-        // Light green inner rind
-        fruitImage.fillRect(2, 6, 12, 2, 7);
-        fruitImage.fillRect(1, 7, 14, 2, 7);
-        // Red flesh
-        fruitImage.fillRect(3, 2, 10, 4, 2);
-        fruitImage.fillRect(2, 3, 12, 3, 2);
-        fruitImage.fillRect(4, 1, 8, 2, 2);
+        // Watermelon slice - triangle-ish shape
+        fruitImg = image.create(14, 10)
+        // Red flesh (triangle shape)
+        fruitImg.setPixel(6, 0, 2)
+        fruitImg.setPixel(7, 0, 2)
+        fruitImg.setPixel(5, 1, 2)
+        fruitImg.setPixel(6, 1, 2)
+        fruitImg.setPixel(7, 1, 2)
+        fruitImg.setPixel(8, 1, 2)
+        fruitImg.setPixel(4, 2, 2)
+        fruitImg.setPixel(5, 2, 2)
+        fruitImg.setPixel(6, 2, 2)
+        fruitImg.setPixel(7, 2, 2)
+        fruitImg.setPixel(8, 2, 2)
+        fruitImg.setPixel(9, 2, 2)
+        fruitImg.setPixel(3, 3, 2)
+        fruitImg.setPixel(4, 3, 2)
+        fruitImg.setPixel(5, 3, 2)
+        fruitImg.setPixel(6, 3, 2)
+        fruitImg.setPixel(7, 3, 2)
+        fruitImg.setPixel(8, 3, 2)
+        fruitImg.setPixel(9, 3, 2)
+        fruitImg.setPixel(10, 3, 2)
+        fruitImg.setPixel(2, 4, 2)
+        fruitImg.setPixel(3, 4, 2)
+        fruitImg.setPixel(4, 4, 2)
+        fruitImg.setPixel(5, 4, 2)
+        fruitImg.setPixel(6, 4, 2)
+        fruitImg.setPixel(7, 4, 2)
+        fruitImg.setPixel(8, 4, 2)
+        fruitImg.setPixel(9, 4, 2)
+        fruitImg.setPixel(10, 4, 2)
+        fruitImg.setPixel(11, 4, 2)
+        fruitImg.setPixel(1, 5, 2)
+        fruitImg.setPixel(2, 5, 2)
+        fruitImg.setPixel(3, 5, 2)
+        fruitImg.setPixel(4, 5, 2)
+        fruitImg.setPixel(5, 5, 2)
+        fruitImg.setPixel(6, 5, 2)
+        fruitImg.setPixel(7, 5, 2)
+        fruitImg.setPixel(8, 5, 2)
+        fruitImg.setPixel(9, 5, 2)
+        fruitImg.setPixel(10, 5, 2)
+        fruitImg.setPixel(11, 5, 2)
+        fruitImg.setPixel(12, 5, 2)
+        fruitImg.setPixel(0, 6, 2)
+        fruitImg.setPixel(1, 6, 2)
+        fruitImg.setPixel(2, 6, 2)
+        fruitImg.setPixel(3, 6, 2)
+        fruitImg.setPixel(4, 6, 2)
+        fruitImg.setPixel(5, 6, 2)
+        fruitImg.setPixel(6, 6, 2)
+        fruitImg.setPixel(7, 6, 2)
+        fruitImg.setPixel(8, 6, 2)
+        fruitImg.setPixel(9, 6, 2)
+        fruitImg.setPixel(10, 6, 2)
+        fruitImg.setPixel(11, 6, 2)
+        fruitImg.setPixel(12, 6, 2)
+        fruitImg.setPixel(13, 6, 2)
+        // White rind
+        fruitImg.setPixel(0, 7, 1)
+        fruitImg.setPixel(1, 7, 1)
+        fruitImg.setPixel(2, 7, 1)
+        fruitImg.setPixel(3, 7, 1)
+        fruitImg.setPixel(4, 7, 1)
+        fruitImg.setPixel(5, 7, 1)
+        fruitImg.setPixel(6, 7, 1)
+        fruitImg.setPixel(7, 7, 1)
+        fruitImg.setPixel(8, 7, 1)
+        fruitImg.setPixel(9, 7, 1)
+        fruitImg.setPixel(10, 7, 1)
+        fruitImg.setPixel(11, 7, 1)
+        fruitImg.setPixel(12, 7, 1)
+        fruitImg.setPixel(13, 7, 1)
+        // Green rind
+        fruitImg.setPixel(0, 8, 7)
+        fruitImg.setPixel(1, 8, 7)
+        fruitImg.setPixel(2, 8, 7)
+        fruitImg.setPixel(3, 8, 7)
+        fruitImg.setPixel(4, 8, 7)
+        fruitImg.setPixel(5, 8, 7)
+        fruitImg.setPixel(6, 8, 7)
+        fruitImg.setPixel(7, 8, 7)
+        fruitImg.setPixel(8, 8, 7)
+        fruitImg.setPixel(9, 8, 7)
+        fruitImg.setPixel(10, 8, 7)
+        fruitImg.setPixel(11, 8, 7)
+        fruitImg.setPixel(12, 8, 7)
+        fruitImg.setPixel(13, 8, 7)
+        fruitImg.setPixel(0, 9, 6)
+        fruitImg.setPixel(1, 9, 6)
+        fruitImg.setPixel(2, 9, 6)
+        fruitImg.setPixel(3, 9, 6)
+        fruitImg.setPixel(4, 9, 6)
+        fruitImg.setPixel(5, 9, 6)
+        fruitImg.setPixel(6, 9, 6)
+        fruitImg.setPixel(7, 9, 6)
+        fruitImg.setPixel(8, 9, 6)
+        fruitImg.setPixel(9, 9, 6)
+        fruitImg.setPixel(10, 9, 6)
+        fruitImg.setPixel(11, 9, 6)
+        fruitImg.setPixel(12, 9, 6)
+        fruitImg.setPixel(13, 9, 6)
         // Black seeds
-        fruitImage.setPixel(5, 3, 15);
-        fruitImage.setPixel(8, 4, 15);
-        fruitImage.setPixel(11, 3, 15);
-        fruitImage.setPixel(6, 5, 15);
-        fruitImage.setPixel(10, 5, 15);
+        fruitImg.setPixel(5, 3, 15)
+        fruitImg.setPixel(8, 3, 15)
+        fruitImg.setPixel(4, 5, 15)
+        fruitImg.setPixel(7, 4, 15)
+        fruitImg.setPixel(9, 5, 15)
     }
 
-    const fruit = sprites.create(fruitImage, FruitKind);
-    fruit.right = screen.width + 16;
-    fruit.y = randint(12, screen.height - 12);
-    fruit.vx = -50;
-    fruit.setFlag(SpriteFlag.AutoDestroy, true);
-}
+    let fruit = sprites.create(fruitImg, FruitKind)
+    fruit.x = 155
+    fruit.y = randint(15, 105)
+    fruit.vx = -50
+    fruit.setFlag(SpriteFlag.AutoDestroy, true)
+})
+
+// COLLISION: Player catches fruit = +1 POINT!
+sprites.onOverlap(PlayerKind, FruitKind, function (sprite, fruit) {
+    fruit.destroy(effects.spray, 100)
+    info.changeScoreBy(1)
+    music.baDing.play()
+})
+
+// Initialize score
+info.setScore(0)
+
