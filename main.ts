@@ -1,7 +1,7 @@
 // Sprite kinds for the game
 const PlayerKind = SpriteKind.create();
 const FruitKind = SpriteKind.create();
-// const CheeseKind = SpriteKind.create() // Disabled for now
+const CheeseKind = SpriteKind.create();
 
 // Set a nice sky blue background
 scene.setBackgroundColor(9);
@@ -105,6 +105,23 @@ let watermelonImg = img`
     6 6 6 6 6 6 6 6 6 6 6 6 6 6
 `
 
+// Smelly roquefort cheese - avoid this! (5 = yellow cheese, 8 = blue mold, 9 = light blue mold)
+let cheeseImg = img`
+    . . . . 5 5 5 5 5 5 . . . .
+    . . . 5 5 8 5 5 9 5 5 . . .
+    . . 5 5 5 5 5 5 5 5 5 5 . .
+    . 5 5 9 8 9 5 5 5 8 5 5 5 .
+    . 5 5 8 9 5 5 5 5 5 5 5 5 .
+    5 5 5 5 5 5 5 8 9 5 5 9 5 5
+    5 5 5 5 5 5 5 9 8 5 5 8 5 5
+    5 5 8 9 5 5 5 5 5 5 5 5 5 5
+    5 5 9 8 5 5 5 5 5 8 5 5 5 5
+    . 5 5 5 5 5 8 9 5 9 5 5 5 .
+    . . 5 5 5 5 9 8 5 5 5 5 . .
+    . . . 5 5 5 5 5 5 5 5 . . .
+    . . . . 5 5 5 5 5 5 . . . .
+`
+
 // Spawn fruits every 1 second
 game.onUpdateInterval(1000, function () {
     const fruitType = randint(1, 4);
@@ -127,11 +144,26 @@ game.onUpdateInterval(1000, function () {
     fruit.setFlag(SpriteFlag.AutoDestroy, true);
 });
 
+// Spawn smelly cheese every 2 seconds
+game.onUpdateInterval(2000, function () {
+    const cheese = sprites.create(cheeseImg, CheeseKind);
+    cheese.x = 155;
+    cheese.y = randint(15, 105);
+    cheese.vx = -60;
+    cheese.setFlag(SpriteFlag.AutoDestroy, true);
+});
+
 // COLLISION: Player catches fruit = +1 POINT!
 sprites.onOverlap(PlayerKind, FruitKind, function (sprite, fruit) {
 	fruit.destroy(effects.spray, 100);
 	info.changeScoreBy(1);
 	music.baDing.play();
+});
+
+// COLLISION: Player hits cheese = GAME OVER!
+sprites.onOverlap(PlayerKind, CheeseKind, function (sprite, cheese) {
+	cheese.destroy();
+	game.over(false);
 });
 
 // Initialize score
