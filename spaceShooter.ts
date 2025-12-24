@@ -10,6 +10,7 @@ namespace SpaceShooter {
     export const LaserKind = SpriteKind.create()
     export const AsteroidKind = SpriteKind.create()
     export const AlienKind = SpriteKind.create()
+    export const CucumberKind = SpriteKind.create()
 
     // Player ship
     let ship: Sprite
@@ -75,6 +76,26 @@ namespace SpaceShooter {
         . . 7 7 . . . . . . . 7 7 . .
     `
 
+    // Cucumber - health pickup!
+    const cucumberImg = img`
+        . . . . . . . . . . . . . . . .
+        . . . . . . . e e . . . . . . .
+        . . . . . . 7 7 . . . . . . . .
+        . . . . . 7 7 7 . . . . . . . .
+        . . . . 7 7 7 7 . . . . . . . .
+        . . . 7 7 7 7 . . . . . . . . .
+        . . . 7 7 7 7 . . . . . . . . .
+        . . . 7 7 7 7 . . . . . . . . .
+        . . . 7 7 7 7 . . . . . . . . .
+        . . . 7 7 7 7 . . . . . . . . .
+        . . . 7 7 7 7 . . . . . . . . .
+        . . . . 7 7 7 7 . . . . . . . .
+        . . . . . 7 7 7 7 . . . . . . .
+        . . . . . . 7 7 7 . . . . . . .
+        . . . . . . . 7 e . . . . . . .
+        . . . . . . . . . . . . . . . .
+    `
+
     export function start() {
         // Dark space background
         scene.setBackgroundColor(15)
@@ -84,6 +105,9 @@ namespace SpaceShooter {
 
         // Reset score
         info.setScore(0)
+
+        // Set starting lives to 3
+        info.setLife(3)
 
         // Create ship at bottom center
         ship = sprites.create(shipImg, ShipKind)
@@ -133,6 +157,14 @@ namespace SpaceShooter {
         alien.setFlag(SpriteFlag.BounceOnWall, true)
     }
 
+    export function spawnCucumber() {
+        const cucumber = sprites.create(cucumberImg, CucumberKind)
+        cucumber.x = randint(20, 140)
+        cucumber.top = 0
+        cucumber.vy = randint(25, 45)
+        cucumber.setFlag(SpriteFlag.AutoDestroy, true)
+    }
+
     // Laser hits asteroid
     sprites.onOverlap(LaserKind, AsteroidKind, (laser, asteroid) => {
         laser.destroy()
@@ -148,15 +180,35 @@ namespace SpaceShooter {
         music.powerUp.play()
     })
 
-    // Ship hits asteroid = GAME OVER
+    // Ship hits asteroid = lose a life
     sprites.onOverlap(ShipKind, AsteroidKind, (_ship, asteroid) => {
         asteroid.destroy()
-        game.over(false, effects.dissolve)
+        info.changeLifeBy(-1)
+        if (info.life() <= 0) {
+            game.over(false, effects.dissolve)
+        } else {
+            music.wawawawaa.play()
+        }
     })
 
-    // Ship hits alien = GAME OVER
+    // Ship hits alien = lose a life
     sprites.onOverlap(ShipKind, AlienKind, (_ship, alien) => {
         alien.destroy()
-        game.over(false, effects.dissolve)
+        info.changeLifeBy(-1)
+        if (info.life() <= 0) {
+            game.over(false, effects.dissolve)
+        } else {
+            music.wawawawaa.play()
+        }
+    })
+
+    // Ship picks up cucumber = gain a life (max 3)
+    sprites.onOverlap(ShipKind, CucumberKind, (_ship, cucumber) => {
+        cucumber.destroy(effects.spray, 100)
+        if (info.life() < 3) {
+            info.changeLifeBy(1)
+        }
+        music.powerUp.play()
+        info.changeScoreBy(5)
     })
 }

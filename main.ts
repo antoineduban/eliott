@@ -38,6 +38,7 @@ function showMenu() {
     sprites.destroyAllSpritesOfKind(SpaceShooter.LaserKind)
     sprites.destroyAllSpritesOfKind(SpaceShooter.AsteroidKind)
     sprites.destroyAllSpritesOfKind(SpaceShooter.AlienKind)
+    sprites.destroyAllSpritesOfKind(SpaceShooter.CucumberKind)
     sprites.destroyAllSpritesOfKind(MenuCursorKind)
 
     // Stop any screen effects
@@ -175,6 +176,13 @@ game.onUpdateInterval(1500, () => {
 game.onUpdateInterval(3000, () => {
     if (currentGame === 2) {
         SpaceShooter.spawnAlien()
+    }
+})
+
+// Cucumber spawning (health pickup)
+game.onUpdateInterval(5000, () => {
+    if (currentGame === 2) {
+        SpaceShooter.spawnCucumber()
     }
 })
 
