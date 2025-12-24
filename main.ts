@@ -99,17 +99,72 @@ function spawnCheese() {
 }
 
 function spawnFruit() {
-    // Create a fruit (red circle-ish - apple placeholder)
-    const fruitImage = image.create(10, 10);
-    // Draw a simple apple shape
-    fruitImage.fillRect(3, 2, 4, 7, 2);  // Red body
-    fruitImage.fillRect(2, 3, 6, 5, 2);
-    fruitImage.fillRect(4, 1, 2, 2, 7);  // White highlight
-    fruitImage.setPixel(5, 0, 6);  // Green stem
+    // Randomly pick a fruit type
+    const fruitType = randint(0, 3);
+    let fruitImage: Image;
+
+    if (fruitType === 0) {
+        // Apple (small - 10x10)
+        fruitImage = image.create(10, 10);
+        fruitImage.fillRect(3, 2, 4, 7, 2);  // Red body
+        fruitImage.fillRect(2, 3, 6, 5, 2);
+        fruitImage.fillRect(4, 1, 2, 2, 7);  // White highlight
+        fruitImage.setPixel(5, 0, 6);  // Green stem
+    } else if (fruitType === 1) {
+        // Pineapple (tall - 10x16)
+        fruitImage = image.create(10, 16);
+        // Green leaves on top
+        fruitImage.fillRect(4, 0, 2, 3, 7);
+        fruitImage.fillRect(3, 1, 4, 2, 7);
+        fruitImage.fillRect(2, 2, 6, 2, 7);
+        // Yellow body
+        fruitImage.fillRect(2, 4, 6, 10, 5);
+        fruitImage.fillRect(3, 4, 4, 11, 5);
+        // Diamond pattern (orange)
+        fruitImage.setPixel(3, 6, 4);
+        fruitImage.setPixel(6, 6, 4);
+        fruitImage.setPixel(4, 8, 4);
+        fruitImage.setPixel(5, 8, 4);
+        fruitImage.setPixel(3, 10, 4);
+        fruitImage.setPixel(6, 10, 4);
+        fruitImage.setPixel(4, 12, 4);
+        fruitImage.setPixel(5, 12, 4);
+    } else if (fruitType === 2) {
+        // Coconut (medium - 12x12)
+        fruitImage = image.create(12, 12);
+        // Brown round body
+        fruitImage.fillRect(3, 1, 6, 10, 14);
+        fruitImage.fillRect(2, 2, 8, 8, 14);
+        fruitImage.fillRect(1, 3, 10, 6, 14);
+        // Three dark spots (eyes and mouth of coconut)
+        fruitImage.setPixel(4, 4, 15);
+        fruitImage.setPixel(7, 4, 15);
+        fruitImage.setPixel(5, 6, 15);
+        fruitImage.setPixel(6, 6, 15);
+    } else {
+        // Watermelon slice (large - 16x12)
+        fruitImage = image.create(16, 12);
+        // Green rind (outer curve)
+        fruitImage.fillRect(1, 8, 14, 3, 6);
+        fruitImage.fillRect(0, 9, 16, 2, 6);
+        // Light green inner rind
+        fruitImage.fillRect(2, 6, 12, 2, 7);
+        fruitImage.fillRect(1, 7, 14, 2, 7);
+        // Red flesh
+        fruitImage.fillRect(3, 2, 10, 4, 2);
+        fruitImage.fillRect(2, 3, 12, 3, 2);
+        fruitImage.fillRect(4, 1, 8, 2, 2);
+        // Black seeds
+        fruitImage.setPixel(5, 3, 15);
+        fruitImage.setPixel(8, 4, 15);
+        fruitImage.setPixel(11, 3, 15);
+        fruitImage.setPixel(6, 5, 15);
+        fruitImage.setPixel(10, 5, 15);
+    }
 
     const fruit = sprites.create(fruitImage, FruitKind);
-    fruit.right = screen.width + 10;
-    fruit.y = randint(10, screen.height - 10);
-    fruit.vx = -50;  // Move left (slightly slower than cheese)
+    fruit.right = screen.width + 16;
+    fruit.y = randint(12, screen.height - 12);
+    fruit.vx = -50;
     fruit.setFlag(SpriteFlag.AutoDestroy, true);
 }
