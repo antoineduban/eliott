@@ -6,6 +6,8 @@
     },
     "files": [
         "main.ts",
+        "fruitCatcher.ts",
+        "spaceShooter.ts",
         "README.md",
         "assets.json",
         "images.g.jres",

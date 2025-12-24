@@ -1,170 +1,203 @@
-// Sprite kinds for the game
-const PlayerKind = SpriteKind.create();
-const FruitKind = SpriteKind.create();
-const CheeseKind = SpriteKind.create();
+// ============================================
+// ELIOTT'S GAME LAUNCHER
+// ============================================
 
-// Set a nice sky blue background
-scene.setBackgroundColor(9);
+// Game state
+let currentGame = 0; // 0 = menu, 1 = fruit catcher, 2 = space shooter
+let menuSelection = 0;
+const TOTAL_GAMES = 2;
 
-// Create the player sprite - a cute blond boy face
-// Color palette: 1 = white (skin), 5 = yellow (hair), 9 = light blue (eyes), 2 = red (mouth), f = black (pupils)
-let playerImage = img`
-    . . . . 5 5 5 5 5 5 5 5 . . . .
-    . . . 5 5 5 5 5 5 5 5 5 5 . . .
-    . . 5 5 5 5 5 5 5 5 5 5 5 5 . .
-    . 5 5 5 5 5 5 5 5 5 5 5 5 5 5 .
-    . 5 5 1 1 1 1 1 1 1 1 1 1 5 5 .
-    . 5 1 1 1 1 1 1 1 1 1 1 1 1 5 .
-    . 1 1 1 1 1 1 1 1 1 1 1 1 1 1 .
-    . 1 1 1 9 1 1 1 1 1 1 9 1 1 1 .
-    . 1 1 1 f 1 1 1 1 1 1 f 1 1 1 .
-    . 1 1 1 1 1 1 1 1 1 1 1 1 1 1 .
-    . 1 1 1 1 1 1 1 1 1 1 1 1 1 1 .
-    . 1 1 1 1 1 2 1 1 2 1 1 1 1 1 .
-    . 1 1 1 1 1 1 2 2 1 1 1 1 1 1 .
-    . . 1 1 1 1 1 1 1 1 1 1 1 1 . .
-    . . . 1 1 1 1 1 1 1 1 1 1 . . .
-    . . . . . 1 1 1 1 1 1 . . . . .
+// Menu cursor
+const cursorImg = img`
+    . . 2 . . . . .
+    . . 2 2 . . . .
+    . . 2 2 2 . . .
+    . . 2 2 2 2 . .
+    . . 2 2 2 2 2 .
+    . . 2 2 2 2 . .
+    . . 2 2 2 . . .
+    . . 2 2 . . . .
+    . . 2 . . . . .
 `
 
-let player = sprites.create(playerImage, PlayerKind);
-player.left = 10;
-player.y = screen.height / 2;
-player.setFlag(SpriteFlag.StayInScreen, true);
+const MenuCursorKind = SpriteKind.create();
+let menuCursor: Sprite;
 
-// Player movement with UP and DOWN
-controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
-	player.vy = -80;
-});
-controller.up.onEvent(ControllerButtonEvent.Released, function () {
-	player.vy = 0;
-});
-controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
-	player.vy = 80;
-});
-controller.down.onEvent(ControllerButtonEvent.Released, function () {
-	player.vy = 0;
-});
+// ============================================
+// MENU FUNCTIONS
+// ============================================
 
-// Define fruit sprites using img template literals (much cleaner!)
-// Color palette: . = transparent, 1 = white, 2 = red, 4 = orange, 5 = yellow, 6 = teal, 7 = green, e = brown, f = black
+function showMenu() {
+    currentGame = 0;
 
-let appleImg = img`
-    . . . . . 7 7 . . .
-    . . . . . 7 7 7 . .
-    . . . . 2 2 . . . .
-    . . . 2 2 2 2 . . .
-    . . 2 1 2 2 2 2 . .
-    . 2 1 2 2 2 2 2 2 .
-    . 2 2 2 2 2 2 2 2 .
-    . 2 2 2 2 2 2 2 2 .
-    . . 2 2 2 2 2 2 . .
-    . . . 2 2 2 2 . . .
-`
+    // Clear all sprites
+    sprites.destroyAllSpritesOfKind(FruitCatcher.PlayerKind);
+    sprites.destroyAllSpritesOfKind(FruitCatcher.FruitKind);
+    sprites.destroyAllSpritesOfKind(FruitCatcher.CheeseKind);
+    sprites.destroyAllSpritesOfKind(SpaceShooter.ShipKind);
+    sprites.destroyAllSpritesOfKind(SpaceShooter.LaserKind);
+    sprites.destroyAllSpritesOfKind(SpaceShooter.AsteroidKind);
+    sprites.destroyAllSpritesOfKind(SpaceShooter.AlienKind);
+    sprites.destroyAllSpritesOfKind(MenuCursorKind);
 
-let pineappleImg = img`
-    . . . . 7 7 . . . .
-    . . 7 7 7 7 7 7 . .
-    . . . 7 7 7 7 . . .
-    . . . . 5 5 . . . .
-    . . . 5 5 5 5 . . .
-    . . 4 5 5 5 5 4 . .
-    . . 5 5 5 5 5 5 . .
-    . . 5 5 4 4 5 5 . .
-    . . 5 5 5 5 5 5 . .
-    . . 4 5 5 5 5 4 . .
-    . . 5 5 5 5 5 5 . .
-    . . . 5 5 5 5 . . .
-    . . . . 5 5 . . . .
-`
+    // Stop any screen effects
+    effects.starField.endScreenEffect();
 
-let coconutImg = img`
-    . . . . e e e e . . . .
-    . . . e e e e e e . . .
-    . . e e e e e e e e . .
-    . e e e f e e f e e e .
-    . e e e e e e e e e e .
-    . e e e e e e e e e e .
-    . e e e e e e e e e e .
-    . e e e e f f e e e e .
-    . . e e e e e e e e . .
-    . . . e e e e e e . . .
-    . . . . e e e e . . . .
-`
+    // Dark background for menu
+    scene.setBackgroundColor(15);
 
-let watermelonImg = img`
-    . . . . . . 2 2 . . . . . .
-    . . . . . 2 2 2 2 . . . . .
-    . . . . 2 2 2 2 2 2 . . . .
-    . . . 2 2 f 2 2 f 2 2 . . .
-    . . 2 2 2 2 2 f 2 2 2 2 . .
-    . 2 2 2 f 2 2 2 2 f 2 2 2 .
-    2 2 2 2 2 2 2 2 2 2 2 2 2 2
-    1 1 1 1 1 1 1 1 1 1 1 1 1 1
-    7 7 7 7 7 7 7 7 7 7 7 7 7 7
-    6 6 6 6 6 6 6 6 6 6 6 6 6 6
-`
+    // Show title
+    game.splash("ELIOTT'S GAMES", "Use UP/DOWN, press A!");
 
-// Smelly roquefort cheese - avoid this! (5 = yellow cheese, 8 = blue mold, 9 = light blue mold)
-let cheeseImg = img`
-    . . . . 5 5 5 5 5 5 . . . .
-    . . . 5 5 8 5 5 9 5 5 . . .
-    . . 5 5 5 5 5 5 5 5 5 5 . .
-    . 5 5 9 8 9 5 5 5 8 5 5 5 .
-    . 5 5 8 9 5 5 5 5 5 5 5 5 .
-    5 5 5 5 5 5 5 8 9 5 5 9 5 5
-    5 5 5 5 5 5 5 9 8 5 5 8 5 5
-    5 5 8 9 5 5 5 5 5 5 5 5 5 5
-    5 5 9 8 5 5 5 5 5 8 5 5 5 5
-    . 5 5 5 5 5 8 9 5 9 5 5 5 .
-    . . 5 5 5 5 9 8 5 5 5 5 . .
-    . . . 5 5 5 5 5 5 5 5 . . .
-    . . . . 5 5 5 5 5 5 . . . .
-`
+    // Menu screen
+    scene.setBackgroundColor(15);
 
-// Spawn fruits every 1 second
-game.onUpdateInterval(1000, function () {
-    const fruitType = randint(1, 4);
-    let fruitImg: Image;
+    // Create cursor
+    menuCursor = sprites.create(cursorImg, MenuCursorKind);
+    menuCursor.x = 25;
+    updateMenuCursor();
+}
 
-    if (fruitType === 1) {
-        fruitImg = appleImg;
-    } else if (fruitType === 2) {
-        fruitImg = pineappleImg;
-    } else if (fruitType === 3) {
-        fruitImg = coconutImg;
-    } else {
-        fruitImg = watermelonImg;
+function updateMenuCursor() {
+    menuCursor.y = 45 + menuSelection * 25;
+}
+
+function startSelectedGame() {
+    // Destroy menu cursor
+    sprites.destroyAllSpritesOfKind(MenuCursorKind);
+
+    if (menuSelection === 0) {
+        currentGame = 1;
+        FruitCatcher.start();
+    } else if (menuSelection === 1) {
+        currentGame = 2;
+        SpaceShooter.start();
     }
+}
 
-    const fruit = sprites.create(fruitImg, FruitKind);
-    fruit.x = 155;
-    fruit.y = randint(15, 105);
-    fruit.vx = -50;
-    fruit.setFlag(SpriteFlag.AutoDestroy, true);
+// ============================================
+// CONTROLS
+// ============================================
+
+// UP button
+controller.up.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (currentGame === 0) {
+        menuSelection = (menuSelection - 1 + TOTAL_GAMES) % TOTAL_GAMES;
+        updateMenuCursor();
+        music.baDing.play();
+    } else if (currentGame === 1) {
+        FruitCatcher.handleUp(true);
+    }
 });
 
-// Spawn smelly cheese every 2 seconds
+controller.up.onEvent(ControllerButtonEvent.Released, function () {
+    if (currentGame === 1) {
+        FruitCatcher.handleUp(false);
+    }
+});
+
+// DOWN button
+controller.down.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (currentGame === 0) {
+        menuSelection = (menuSelection + 1) % TOTAL_GAMES;
+        updateMenuCursor();
+        music.baDing.play();
+    } else if (currentGame === 1) {
+        FruitCatcher.handleDown(true);
+    }
+});
+
+controller.down.onEvent(ControllerButtonEvent.Released, function () {
+    if (currentGame === 1) {
+        FruitCatcher.handleDown(false);
+    }
+});
+
+// LEFT button
+controller.left.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (currentGame === 2) {
+        SpaceShooter.handleLeft(true);
+    }
+});
+
+controller.left.onEvent(ControllerButtonEvent.Released, function () {
+    if (currentGame === 2) {
+        SpaceShooter.handleLeft(false);
+    }
+});
+
+// RIGHT button
+controller.right.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (currentGame === 2) {
+        SpaceShooter.handleRight(true);
+    }
+});
+
+controller.right.onEvent(ControllerButtonEvent.Released, function () {
+    if (currentGame === 2) {
+        SpaceShooter.handleRight(false);
+    }
+});
+
+// A button (select / shoot)
+controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (currentGame === 0) {
+        startSelectedGame();
+    } else if (currentGame === 2) {
+        SpaceShooter.handleShoot();
+    }
+});
+
+// ============================================
+// SPAWNING LOOPS
+// ============================================
+
+// Fruit Catcher spawning
+game.onUpdateInterval(1000, function () {
+    if (currentGame === 1) {
+        FruitCatcher.spawnFruit();
+    }
+});
+
 game.onUpdateInterval(2000, function () {
-    const cheese = sprites.create(cheeseImg, CheeseKind);
-    cheese.x = 155;
-    cheese.y = randint(15, 105);
-    cheese.vx = -60;
-    cheese.setFlag(SpriteFlag.AutoDestroy, true);
+    if (currentGame === 1) {
+        FruitCatcher.spawnCheese();
+    }
 });
 
-// COLLISION: Player catches fruit = +1 POINT!
-sprites.onOverlap(PlayerKind, FruitKind, function (sprite, fruit) {
-	fruit.destroy(effects.spray, 100);
-	info.changeScoreBy(1);
-	music.baDing.play();
+// Space Shooter spawning
+game.onUpdateInterval(1500, function () {
+    if (currentGame === 2) {
+        SpaceShooter.spawnAsteroid();
+    }
 });
 
-// COLLISION: Player hits cheese = GAME OVER!
-sprites.onOverlap(PlayerKind, CheeseKind, function (sprite, cheese) {
-	cheese.destroy();
-	game.over(false);
+game.onUpdateInterval(3000, function () {
+    if (currentGame === 2) {
+        SpaceShooter.spawnAlien();
+    }
 });
 
-// Initialize score
-info.setScore(0);
+// ============================================
+// GAME OVER -> RESTART
+// ============================================
+
+// Configure game over screen to show score and allow replay
+game.setGameOverScoringType(game.ScoringType.HighScore);
+
+// ============================================
+// DRAW MENU TEXT
+// ============================================
+
+game.onPaint(function () {
+    if (currentGame === 0) {
+        image.screenImage().printCenter("1. Fruit Catcher", 40, 1, image.font8);
+        image.screenImage().printCenter("2. Space Shooter", 65, 1, image.font8);
+    }
+});
+
+// ============================================
+// START!
+// ============================================
+
+showMenu();
