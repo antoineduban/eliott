@@ -160,7 +160,7 @@ namespace FruitCatcher {
         const fruit = sprites.create(fruitImg, FruitKind)
         fruit.x = 155
         fruit.y = randint(15, 105)
-        fruit.vx = -50
+        fruit.vx = -30
         fruit.setFlag(SpriteFlag.AutoDestroy, true)
     }
 
@@ -168,7 +168,7 @@ namespace FruitCatcher {
         const cheese = sprites.create(cheeseImg, CheeseKind)
         cheese.x = 155
         cheese.y = randint(15, 105)
-        cheese.vx = -60
+        cheese.vx = -40
         cheese.setFlag(SpriteFlag.AutoDestroy, true)
     }
 }

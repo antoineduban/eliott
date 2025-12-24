@@ -159,7 +159,7 @@ game.onUpdateInterval(1000, () => {
     }
 })
 
-game.onUpdateInterval(2000, () => {
+game.onUpdateInterval(3500, () => {
     if (currentGame === 1) {
         FruitCatcher.spawnCheese()
     }
