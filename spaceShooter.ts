@@ -21,7 +21,18 @@ namespace SpaceShooter {
     let boss: Sprite | null = null
     let bossHealth = 0
     export let bossActive = false
-    let bossSpawned = false
+    let bossLevel = 0 // Which boss we're on (0 = none yet, 1 = first, 2 = second, etc.)
+    let nextBossScore = 20 // Score needed for next boss
+    let bossMessageUntil = 0
+
+    // Boss colors for each level (body color, cockpit color)
+    const bossColors: number[][] = [
+        [12, 2], // Purple body, red cockpit (boss 1)
+        [8, 5], // Blue body, yellow cockpit (boss 2)
+        [7, 4], // Green body, orange cockpit (boss 3)
+        [2, 5], // Red body, yellow cockpit (boss 4)
+        [10, 9], // Purple body, light blue cockpit (boss 5+)
+    ]
 
     // Sprite images
     const shipImg = img`
@@ -153,7 +164,8 @@ namespace SpaceShooter {
         boss = null
         bossHealth = 0
         bossActive = false
-        bossSpawned = false
+        bossLevel = 0
+        nextBossScore = 20
 
         // Create ship at bottom center
         ship = sprites.create(shipImg, ShipKind)
@@ -163,9 +175,9 @@ namespace SpaceShooter {
     }
 
     export function spawnBoss() {
-        if (bossSpawned) return
+        if (bossActive) return
 
-        bossSpawned = true
+        bossLevel += 1
         bossActive = true
         bossHealth = 15
 
@@ -174,15 +186,25 @@ namespace SpaceShooter {
         sprites.destroyAllSpritesOfKind(AlienKind)
         sprites.destroyAllSpritesOfKind(CucumberKind)
 
+        // Create boss sprite and recolor it based on level
+        const bossImage = bossImg.clone()
+        const colorIndex = Math.min(bossLevel - 1, bossColors.length - 1)
+        const bodyColor = bossColors[colorIndex][0]
+        const cockpitColor = bossColors[colorIndex][1]
+
+        // Replace colors: c (dark purple) -> body color, 2 (red) -> cockpit color
+        bossImage.replace(12, bodyColor)
+        bossImage.replace(2, cockpitColor)
+
         // Create boss at top
-        boss = sprites.create(bossImg, BossKind)
+        boss = sprites.create(bossImage, BossKind)
         boss.x = 80
         boss.top = 5
-        boss.vx = 30
+        boss.vx = 15 + bossLevel * 3 // Each boss is a bit faster
         boss.setFlag(SpriteFlag.BounceOnWall, true)
 
-        // Warning message
-        game.splash("BOSS !!!", "")
+        // Show warning message for 5 seconds
+        bossMessageUntil = game.runtime() + 5000
     }
 
     export function dropBomb() {
@@ -191,12 +213,12 @@ namespace SpaceShooter {
         const bomb = sprites.create(bombImg, BombKind)
         bomb.x = boss.x
         bomb.top = boss.bottom
-        bomb.vy = 60
+        bomb.vy = 30
         bomb.setFlag(SpriteFlag.AutoDestroy, true)
     }
 
     export function checkBossSpawn() {
-        if (!bossSpawned && info.score() >= 20) {
+        if (!bossActive && info.score() >= nextBossScore) {
             spawnBoss()
         }
     }
@@ -228,7 +250,7 @@ namespace SpaceShooter {
         const asteroid = sprites.create(asteroidImg, AsteroidKind)
         asteroid.x = randint(10, 150)
         asteroid.top = 0
-        asteroid.vy = randint(30, 60)
+        asteroid.vy = randint(15, 30)
         asteroid.setFlag(SpriteFlag.AutoDestroy, true)
     }
 
@@ -236,8 +258,8 @@ namespace SpaceShooter {
         const alien = sprites.create(alienImg, AlienKind)
         alien.x = randint(20, 140)
         alien.top = 0
-        alien.vy = randint(20, 40)
-        alien.vx = randint(-20, 20)
+        alien.vy = randint(10, 20)
+        alien.vx = randint(-15, 15)
         alien.setFlag(SpriteFlag.AutoDestroy, true)
         alien.setFlag(SpriteFlag.BounceOnWall, true)
     }
@@ -309,6 +331,8 @@ namespace SpaceShooter {
             boss = null
             bossActive = false
             info.changeScoreBy(50)
+            // Set next boss threshold to current score + 20
+            nextBossScore = info.score() + 20
             music.powerUp.play()
             game.splash("BRAVO !", "")
         }
@@ -332,6 +356,13 @@ namespace SpaceShooter {
             game.over(false, effects.dissolve)
         } else {
             music.wawawawaa.play()
+        }
+    })
+
+    // Draw boss warning message
+    game.onPaint(() => {
+        if (bossMessageUntil > game.runtime()) {
+            image.screenImage().printCenter("BOSS !!!", 55, 2, image.font8)
         }
     })
 }
