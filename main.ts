@@ -39,6 +39,8 @@ function showMenu() {
     sprites.destroyAllSpritesOfKind(SpaceShooter.AsteroidKind)
     sprites.destroyAllSpritesOfKind(SpaceShooter.AlienKind)
     sprites.destroyAllSpritesOfKind(SpaceShooter.CucumberKind)
+    sprites.destroyAllSpritesOfKind(SpaceShooter.BossKind)
+    sprites.destroyAllSpritesOfKind(SpaceShooter.BombKind)
     sprites.destroyAllSpritesOfKind(MenuCursorKind)
 
     // Stop any screen effects
@@ -166,23 +168,37 @@ game.onUpdateInterval(3500, () => {
     }
 })
 
-// Space Shooter spawning
+// Space Shooter spawning (only when boss is not active)
 game.onUpdateInterval(1500, () => {
-    if (currentGame === 2) {
+    if (currentGame === 2 && !SpaceShooter.bossActive) {
         SpaceShooter.spawnAsteroid()
     }
 })
 
 game.onUpdateInterval(3000, () => {
-    if (currentGame === 2) {
+    if (currentGame === 2 && !SpaceShooter.bossActive) {
         SpaceShooter.spawnAlien()
     }
 })
 
-// Cucumber spawning (health pickup)
+// Cucumber spawning (health pickup - only when boss is not active)
 game.onUpdateInterval(5000, () => {
-    if (currentGame === 2) {
+    if (currentGame === 2 && !SpaceShooter.bossActive) {
         SpaceShooter.spawnCucumber()
+    }
+})
+
+// Check for boss spawn and drop bombs
+game.onUpdateInterval(500, () => {
+    if (currentGame === 2) {
+        SpaceShooter.checkBossSpawn()
+    }
+})
+
+// Boss drops bombs
+game.onUpdateInterval(1000, () => {
+    if (currentGame === 2 && SpaceShooter.bossActive) {
+        SpaceShooter.dropBomb()
     }
 })
 

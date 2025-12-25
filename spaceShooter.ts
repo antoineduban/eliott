@@ -11,9 +11,17 @@ namespace SpaceShooter {
     export const AsteroidKind = SpriteKind.create()
     export const AlienKind = SpriteKind.create()
     export const CucumberKind = SpriteKind.create()
+    export const BossKind = SpriteKind.create()
+    export const BombKind = SpriteKind.create()
 
     // Player ship
     let ship: Sprite
+
+    // Boss state
+    let boss: Sprite | null = null
+    let bossHealth = 0
+    export let bossActive = false
+    let bossSpawned = false
 
     // Sprite images
     const shipImg = img`
@@ -96,6 +104,38 @@ namespace SpaceShooter {
         . . . . . . . . . . . . . . . .
     `
 
+    // Boss spaceship - big and menacing!
+    const bossImg = img`
+        . . . . . . . . . . . . f f f f f f . . . . . . . . . . . . . .
+        . . . . . . . . . . . f f 2 2 2 2 f f . . . . . . . . . . . . .
+        . . . . . . . . . . f f 2 2 2 2 2 2 f f . . . . . . . . . . . .
+        . . . . . . . . . f f 2 2 2 2 2 2 2 2 f f . . . . . . . . . . .
+        . . . . . . . . f f 2 2 2 2 2 2 2 2 2 2 f f . . . . . . . . . .
+        . . . . . . . f f c c c c c c c c c c c c f f . . . . . . . . .
+        . . . . . . f f c c c c c c c c c c c c c c f f . . . . . . . .
+        . . . . . f f c c c c c c c c c c c c c c c c f f . . . . . . .
+        . . . . f f c c c f f c c c c c c c c f f c c c f f . . . . . .
+        . . . f f c c c c f f c c c c c c c c f f c c c c f f . . . . .
+        . . f f c c c c c c c c c c c c c c c c c c c c c c f f . . . .
+        . f f c c c c c c c c c c c c c c c c c c c c c c c c f f . . .
+        f f c c c c c c c c c c c c c c c c c c c c c c c c c c f f . .
+        f c c c c c c c c c c c c c c c c c c c c c c c c c c c c f . .
+        f f f f f f f f f c c c c c c c c c c c c f f f f f f f f f . .
+        . . . . . . . . f f 4 4 4 4 4 4 4 4 4 4 f f . . . . . . . . . .
+    `
+
+    // Bomb dropped by boss
+    const bombImg = img`
+        . . . f f . . .
+        . . f 2 2 f . .
+        . f 2 2 2 2 f .
+        f 2 2 2 2 2 2 f
+        f 2 2 2 2 2 2 f
+        . f 2 2 2 2 f .
+        . . f 4 4 f . .
+        . . . f f . . .
+    `
+
     export function start() {
         // Dark space background
         scene.setBackgroundColor(15)
@@ -109,11 +149,56 @@ namespace SpaceShooter {
         // Set starting lives to 3
         info.setLife(3)
 
+        // Reset boss state
+        boss = null
+        bossHealth = 0
+        bossActive = false
+        bossSpawned = false
+
         // Create ship at bottom center
         ship = sprites.create(shipImg, ShipKind)
         ship.x = 80
         ship.bottom = 115
         ship.setFlag(SpriteFlag.StayInScreen, true)
+    }
+
+    export function spawnBoss() {
+        if (bossSpawned) return
+
+        bossSpawned = true
+        bossActive = true
+        bossHealth = 15
+
+        // Clear existing enemies
+        sprites.destroyAllSpritesOfKind(AsteroidKind)
+        sprites.destroyAllSpritesOfKind(AlienKind)
+        sprites.destroyAllSpritesOfKind(CucumberKind)
+
+        // Create boss at top
+        boss = sprites.create(bossImg, BossKind)
+        boss.x = 80
+        boss.top = 5
+        boss.vx = 30
+        boss.setFlag(SpriteFlag.BounceOnWall, true)
+
+        // Warning message
+        game.splash("BOSS !!!", "")
+    }
+
+    export function dropBomb() {
+        if (!boss || !bossActive) return
+
+        const bomb = sprites.create(bombImg, BombKind)
+        bomb.x = boss.x
+        bomb.top = boss.bottom
+        bomb.vy = 60
+        bomb.setFlag(SpriteFlag.AutoDestroy, true)
+    }
+
+    export function checkBossSpawn() {
+        if (!bossSpawned && info.score() >= 20) {
+            spawnBoss()
+        }
     }
 
     export function handleLeft(pressed: boolean) {
@@ -210,5 +295,43 @@ namespace SpaceShooter {
         }
         music.powerUp.play()
         info.changeScoreBy(5)
+    })
+
+    // Laser hits boss
+    sprites.onOverlap(LaserKind, BossKind, (laser, _boss) => {
+        laser.destroy()
+        bossHealth -= 1
+        music.pewPew.play()
+
+        if (boss && bossHealth <= 0) {
+            // Boss defeated!
+            boss.destroy(effects.fire, 500)
+            boss = null
+            bossActive = false
+            info.changeScoreBy(50)
+            music.powerUp.play()
+            game.splash("BRAVO !", "")
+        }
+    })
+
+    // Ship hits bomb = lose a life
+    sprites.onOverlap(ShipKind, BombKind, (_ship, bomb) => {
+        bomb.destroy(effects.fire, 100)
+        info.changeLifeBy(-1)
+        if (info.life() <= 0) {
+            game.over(false, effects.dissolve)
+        } else {
+            music.wawawawaa.play()
+        }
+    })
+
+    // Ship hits boss = lose a life
+    sprites.onOverlap(ShipKind, BossKind, (_ship, _boss) => {
+        info.changeLifeBy(-1)
+        if (info.life() <= 0) {
+            game.over(false, effects.dissolve)
+        } else {
+            music.wawawawaa.play()
+        }
     })
 }
