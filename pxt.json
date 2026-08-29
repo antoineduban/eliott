@@ -1,13 +1,19 @@
 {
-    "name": "flappy",
-    "description": "",
+    "name": "lila-la-fee",
+    "description": "Lila la fée - un jeu de plateforme magique",
     "dependencies": {
         "device": "*"
     },
     "files": [
+        "font.ts",
+        "assets.ts",
+        "levels.ts",
+        "player.ts",
+        "enemies.ts",
+        "bosses.ts",
+        "story.ts",
+        "autoplay.ts",
         "main.ts",
-        "fruitCatcher.ts",
-        "spaceShooter.ts",
         "README.md",
         "assets.json",
         "images.g.jres",

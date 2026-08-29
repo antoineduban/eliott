@@ -10,6 +10,9 @@
     ],
     "exclude": [
         "built/**",
+        "archive/**",
+        "tools/**",
+        "node_modules/**",
         "pxt_modules/**/*test.ts"
     ]
 }
