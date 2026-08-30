@@ -4,9 +4,18 @@ MakeCode Arcade project (static TypeScript) for a kid's handheld: an **ELECFREAK
 (STM32F412 board, MakeCode hardware variant `stm32f401`). On USB it appears as "Arcade (app)"
 (VID `0x0483` / PID `0x5799`) while a MakeCode game runs, and as ELECFREAKS "Arcade"
 (VID `0x26AC` / PID `0x1043`) in bootloader mode.
-The current game is **"Lila la fée"**, a French platformer (see `README.md` for the player-facing
-description and file map). The two older games are kept in `archive/` and are **not** compiled
-(not listed in `pxt.json`).
+The repo holds **two separate MakeCode projects** (one binary each; the console holds one game at a time):
+- the root: **"Lila la fée"**, a French platformer for a 6-year-old: 6 levels, 6 bosses, potions with random
+  effects, mushrooms that transform Lila, and one logic puzzle per level (the owl's gate, `puzzles.ts`)
+  (see `README.md` for the player-facing description and file map);
+- `course/`: **"Vroum !"**, a top-down car race (5 races, faster each time, obstacles to dodge left/right,
+  A = turbo). Same toolchain from inside the folder: `cd course && ../node_modules/.bin/makecode build -j`,
+  `makecode serve -p 7002`, native `makecode build` → `course/built/stm32f401/binary.uf2`, flash with
+  `node tools/deploy.mjs course/built/stm32f401/binary.uf2`. Its `font.ts` is a symlink to the root one.
+  Test with `SIM_SPEED=4 node tools/play-race.mjs 400 4` (demo bot: DOWN + A on the title; log lines
+  `RACE n START`, `CRASH life=n`, `RESTART`, `FINISH n score=s`, `CHAMPION`). Difficulty lives in
+  `course/tracks.ts` (speed, `gap` between obstacle waves — keep `gap / speed` ≥ 1.2 s, double-wave chance).
+The two older games are kept in `archive/` and are **not** compiled (not listed in any `pxt.json`).
 
 Everything below was learned the hard way on 2026-08-29. Trust it over guesses.
 
@@ -24,6 +33,22 @@ Everything below was learned the hard way on 2026-08-29. Trust it over guesses.
 - `mkc.json` carries `"hwVariant": "stm32f401"`. Do **not** pass `--hw` to `makecode build`: the CLI
   crashes in `selectHW` (`cfg.card` undefined). With the variant in `mkc.json`, `makecode build`
   produces `built/stm32f401/binary.uf2`; `makecode build -j` produces `built/binary.js` for the simulator.
+
+## Flash budget (the simulator build does not check it)
+
+`makecode build` (native) fails with `program too big by N bytes` when the STM32F401 flash is exceeded;
+`makecode build -j` never complains, so **always run the native build before finishing**. Found on
+2026-08-29 when the puzzles pushed the game 7.8 KB over. Big-ticket items, from the asm listing
+(`built/stm32f401/binary.asm`, one `; Function file(line,col): name` header per function — sum the
+instruction/`.hex`/`.word` lines per file to see who weighs what):
+- `sprite.sayText` links `sprites.RenderText` + `spritesay.ts` (tens of KB): draw speech bubbles by
+  hand in `onShade` instead (`Bosses.say`, uses `game.currentScene().camera.drawOffsetX/Y`).
+- `animation.runImageAnimation` links the whole `animation` package (~14 KB): swap frames manually.
+- Files listed in `pxt.json` are compiled even if unused: the old games' `images.g.ts`/`.jres` cost 2 KB
+  and now live in `archive/`.
+- Story text and level ASCII are stored verbatim (~7 KB + ~4 KB); `effects.*`, `music.*` melodies and the
+  system menu are always linked, nothing to gain there.
+After these changes the UF2 is 819 KB (it was 846 KB before the puzzles, and that still fit).
 
 ## Build & run in the simulator
 
@@ -45,11 +70,18 @@ from the sim's `serial` postMessages), `reload`.
 - Simulator keys: arrows, **z = A button**, **x = B button**, Enter = menu.
 - `SIM_SPEED=4` injects a time warp (scaled `Date.now`/`performance.now`/timers) so the game runs ~4x
   faster; command durations are in game time. Playwright's fake clock was tried and is slower (x1.8).
-- `tools/play.mjs [maxGameSeconds] [shotEverySeconds]` starts the in-game **demo bot** (title screen:
-  hold DOWN + press A → `Autoplay.start()`), streams the game's log lines (`LEVEL n START`, `STAR k`,
-  `PORTAL`, `BOSS ... hp=n`, `BOSS n DEFEATED`, `DEFEAT`, `VICTOIRE`) and stops on `VICTOIRE`.
-  A full run of the game takes ~80–120 s of game time ≈ 20–30 s real at x4. Use it after any gameplay
-  change; if the bot gets stuck, look at the periodic screenshots to see where.
+- `tools/play.mjs [maxGameSeconds] [shotEverySeconds] [startLevel]` starts the in-game **demo bot**
+  (title screen: hold DOWN + press A → `Autoplay.start()`; B first to pick the start level), streams the
+  game's log lines (`LEVEL n START`, `STAR k`, `POTION …`, `MUSHROOM …`, `PORTAL`, `BOSS ... hp=n`,
+  `BOSS n DEFEATED`, `DEFEAT`, `VICTOIRE`) and stops on `VICTOIRE`. A full run takes ~300–350 s of game
+  time ≈ 90 s real at x4; `play.mjs 150 5 6` tests one level. Use it after any gameplay change; if the
+  bot gets stuck or dies in a loop, look at the periodic screenshots (1 s interval works) to see where.
+  Potion/mushroom effects are random, so run twice before concluding.
+- Title-screen shortcuts: **B** cycles the start level, **UP + A** goes straight to that level's boss
+  (skips the level; used to watch boss attacks with Lila idle: `sim.mjs "... down ArrowUp; press z; up ArrowUp; ..."`).
+- `node tools/checklevels.mjs` validates `levels.ts` (row widths, hazard row, platform/flyer placement
+  rules below). Run it after touching a level; building level rows from explicit column coordinates in a
+  script is far more reliable than editing the ASCII by eye.
 - **Look at the screenshots** (Read the PNG) — most bugs found today were only visible in images:
   font glyphs missing, dialog lines overlapping, a sprite stuck in a pit, wrong HUD font.
 - Manual scenario example (story pages need one A press each):
@@ -103,13 +135,26 @@ Facts:
 - Tiles outside the tilemap count as walls: a sprite falling into a pit lands on an invisible floor at the
   map bottom. Levels therefore have a hazard row (`~` = water/lava/storm, tile index `Levels.HAZARD`)
   under the ground, and `Player.update` checks `Levels.tileIndexAt` to trigger the respawn.
-- Level design rule (see `levels.ts`): never put a platform directly above a gap or above the tile before
-  it — the jump (40 px high, 16 px tiles) bumps the head and the sprite falls in.
+- Level design rules (see `levels.ts`, enforced by `tools/checklevels.mjs`): never put a platform above a
+  gap or spikes (`^`) nor above the **two** tiles before them — the jump starts there (40 px high, 16 px
+  tiles) and bumps the head, so the sprite falls in / lands on the spikes; no platform in rows 0–4 on the
+  tile *after* them either (head bump at the apex, fall back). Each of these killed the bot in a loop on
+  level 6 before the rule was extended. A flyer above or within 2 tiles of a gap/spikes goes to row 3
+  (2-wide gap) or row 2 (3-wide gap, spikes): the jump apex is in row 3, a flyer there is hit every time.
+- `^` spikes are a non-wall tile (index `Levels.SPIKES`): `Player.update` checks the tile under the feet
+  and calls `hurt` (knockback + invincibility, one heart). Ice levels set `Levels.slippery` and
+  `Player.update` eases `vx` instead of setting it.
 - Tilemaps are built at runtime from ASCII rows with `tiles.createTilemap(buffer, wallLayerImage,
   tileset, TileScale.Sixteen)` (buffer = u16 width, u16 height, then one tile index per cell; wall layer
   pixel value 2 = wall). No `.jres` tilemap assets are needed.
 - `sprites.onOverlap` handlers run in their own fiber; blocking calls (`pause`, `showLongText`) are fine
   there but not inside `game.onUpdate` — wrap flows in `control.runInParallel`.
+- A blocking mini-game screen (`Puzzles.run`) works like a dialog: `game.pushScene()`, draw everything
+  in a `game.onPaint` callback (renderables are per scene), poll buttons on the press edge with
+  `pause(16)`, `game.popScene()`. The previous scene's sprites and physics are frozen meanwhile. Sprite
+  overlaps are pixel-based, so a "barrier" sprite must be dense (the gate's curtain is a checkerboard).
+  In demo mode (`Autoplay.active`) the puzzle ignores buttons and answers itself after 1.5 s — the bot
+  keeps pressing A during `State.Transition`, which would otherwise validate wrong answers.
 - `info.setLife` auto-registers a game-over on life zero unless `info.onLifeZero` is set (it is: it
   restarts the level/boss instead).
 - `Button.setPressed(bool)` on `controller.A/left/right` synthesizes input (used by the bot); dialogs
@@ -117,8 +162,20 @@ Facts:
 
 ## Game structure quick reference
 
-`Game.State`: Title → Transition (story dialogs) → Playing → (portal) → Boss → next level … → Ending.
-Levels are ASCII in `levels.ts` (`#` ground, `=` platform, `*` star, `h` heart, `e` walker, `b` flyer,
-`P` start, `F` portal, `~` hazard); the boss arena is `Levels.arena` reused with each level's theme.
-Difficulty knobs: `player.ts` constants (speed 70, jump -185, gravity 420, glide 35, invincibility 1.5 s),
-enemy speeds in `enemies.ts`, boss HP/shot cadence in `bosses.ts`.
+`Game.State`: Title → Transition (story dialogs, puzzles) → Playing → (portal) → Boss → next level … → Ending.
+Levels are ASCII in `levels.ts` (`#` ground, `=` platform, `^` spikes, `*` star, `h` heart, `p` potion,
+`m` mushroom, `?` owl gate (full-height barrier sprite, `Puzzles.GateKind`; the puzzle type is fixed per
+level in `Puzzles.kindFor`, content random; 3 failures → the owl shows the answer and opens anyway),
+`e` walker, `b` flyer, `P` start, `F` portal, `~` hazard); the boss arena is `Levels.arena`
+reused with each level's theme. Themes 0–5 (forest, cave, sky, beach, ice, volcano) select tiles,
+background and enemy sprites in `assets.ts` (the three newer tilesets are generated in code by
+`groundTile`/`platformTile`). Story pages are indexed by level in `story.ts` (`bossIntro[i]`,
+`afterBoss[i]`; the last level uses `ending`).
+`player.ts` owns the potion effects (random: super/invincible, tiny, snail, shield bubble sprite, heart,
+star rain via `Game.dropStars`) and the mushroom forms (`FORM_BUTTERFLY` flies while A is held,
+`FORM_FROG` jumps x1.4, `FORM_RABBIT` runs x1.6); `Player.hudText()` is drawn bottom-left.
+Difficulty knobs: `player.ts` constants (speed 70, jump -185, gravity 420, glide 35, invincibility 1.3 s),
+per-theme enemy speeds in `enemies.ts`, boss HP/shot cadence in `bosses.ts` (the golem also spawns lava
+blobs through `Enemies.spawnWalker`, so Player/Enemy overlaps are handled in the Boss state too).
+The demo bot spams magic (220 ms cooldown), so it kills bosses in ~3 s and never sees their specials —
+that is not a sign the bosses are too easy for a child.

@@ -1,22 +1,17 @@
 {
-    "name": "lila-la-fee",
-    "description": "Lila la fée - un jeu de plateforme magique",
+    "name": "vroum",
+    "description": "Vroum ! - un jeu de course",
     "dependencies": {
         "device": "*"
     },
     "files": [
         "font.ts",
         "assets.ts",
-        "levels.ts",
-        "player.ts",
-        "enemies.ts",
-        "bosses.ts",
-        "story.ts",
-        "puzzles.ts",
+        "tracks.ts",
+        "race.ts",
         "autoplay.ts",
         "main.ts",
-        "README.md",
-        "assets.json"
+        "README.md"
     ],
     "targetVersions": {
         "branch": "v1.12.25",

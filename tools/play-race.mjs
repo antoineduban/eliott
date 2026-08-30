@@ -1,24 +1,26 @@
-// Lance le "mode démo" du jeu (le jeu se joue tout seul) dans le simulateur
-// et suit sa progression via la console du jeu.
+// Lance le mode démo du jeu de course (dossier course/, simulateur sur le port
+// 7002) et suit sa progression via la console du jeu.
 //
-// Usage : node tools/play.mjs [durée max de jeu en s] [intervalle captures en s] [niveau de départ 1-6]
+// Usage : node tools/play-race.mjs [durée max de jeu en s] [intervalle captures en s] [course de départ 1-5]
 //
-// Le temps du jeu est accéléré (SIM_SPEED, défaut 4). Le mode démo se déclenche
-// sur l'écran titre en maintenant BAS et en appuyant sur A. Le script s'arrête
-// sur VICTOIRE ou à la fin du temps imparti.
+// Le serveur doit tourner : cd course && ../node_modules/.bin/makecode serve -p 7002
+// Le temps du jeu est accéléré (SIM_SPEED, défaut 4). Le script s'arrête sur
+// CHAMPION ou à la fin du temps imparti.
 
 import { openSim } from "./sim.mjs"
 
-const maxSeconds = Number(process.argv[2] || 600)
+const maxSeconds = Number(process.argv[2] || 400)
 const shotEvery = Number(process.argv[3] || 30)
-const startLevel = Number(process.argv[4] || 1)
+const startTrack = Number(process.argv[4] || 1)
 const speed = Number(process.env.SIM_SPEED || 4)
 
-const sim = await openSim({ speed })
+const sim = await openSim({
+    speed,
+    url: process.env.SIM_URL || "http://localhost:7002/",
+})
 try {
     await sim.wait(2000)
-    // Sur l'écran titre, B choisit le niveau de départ
-    for (let i = 1; i < startLevel; i++) {
+    for (let i = 1; i < startTrack; i++) {
         await sim.press("x")
         await sim.wait(150)
     }
@@ -45,13 +47,13 @@ try {
         if (gameSeconds - lastShot >= shotEvery) {
             lastShot = gameSeconds
             shotIndex++
-            const name = `demo-${String(shotIndex).padStart(2, "0")}-${gameSeconds}s`
+            const name = `race-${String(shotIndex).padStart(2, "0")}-${gameSeconds}s`
             await sim.shot(name)
             console.log(`[shot ${name}]`)
         }
-        if (/VICTOIRE|GAME OVER/.test(allLog)) done = true
+        if (/CHAMPION/.test(allLog)) done = true
     }
-    await sim.shot("demo-final")
+    await sim.shot("race-final")
     const realSeconds = (Date.now() - realStart) / 1000
     console.log(
         `${done ? "=== Partie terminée ===" : "=== Temps écoulé ==="} ${gameSeconds}s de jeu en ${realSeconds.toFixed(0)}s réels (x${(gameSeconds / realSeconds).toFixed(1)})`,
