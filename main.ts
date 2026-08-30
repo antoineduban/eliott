@@ -15,10 +15,14 @@ namespace Game {
     export const ItemKind = SpriteKind.create()
     export const HeartKind = SpriteKind.create()
     export const PortalKind = SpriteKind.create()
+    export const PotionKind = SpriteKind.create()
+    export const MushroomKind = SpriteKind.create()
     export const DecoKind = SpriteKind.create()
 
     export let state = State.Title
     let levelIndex = 0
+    // Niveau choisi sur l'écran titre (B pour changer)
+    let chosenLevel = 0
     let bannerText = ""
     let bannerUntil = 0
     let bigFont: image.Font = null
@@ -29,9 +33,21 @@ namespace Game {
         return control.millis()
     }
 
-    function showBanner(text: string, ms: number) {
+    export function showBanner(text: string, ms: number) {
         bannerText = text
         bannerUntil = now() + ms
+    }
+
+    // Pluie d'étoiles (potion) : des étoiles jaillissent et retombent
+    export function dropStars(x: number, y: number) {
+        for (let i = 0; i < 4; i++) {
+            const s = sprites.create(Assets.star, ItemKind)
+            s.setPosition(x, y)
+            s.vx = (i - 1.5) * 40
+            s.vy = -120
+            s.ay = 250
+            s.z = 3
+        }
     }
 
     function clearAll() {
@@ -42,6 +58,10 @@ namespace Game {
         sprites.destroyAllSpritesOfKind(ItemKind)
         sprites.destroyAllSpritesOfKind(HeartKind)
         sprites.destroyAllSpritesOfKind(PortalKind)
+        sprites.destroyAllSpritesOfKind(Puzzles.GateKind)
+        sprites.destroyAllSpritesOfKind(PotionKind)
+        sprites.destroyAllSpritesOfKind(MushroomKind)
+        sprites.destroyAllSpritesOfKind(Player.BubbleKind)
         sprites.destroyAllSpritesOfKind(DecoKind)
         Player.sprite = null
         titleFairy = null
@@ -56,7 +76,6 @@ namespace Game {
         scene.centerCameraAt(80, 60)
         titleFairy = sprites.create(Assets.fairyR[0], DecoKind)
         titleFairy.setPosition(80, 66)
-        animation.runImageAnimation(titleFairy, Assets.fairyR, 150, true)
         for (let i = 0; i < 5; i++) {
             const s = sprites.create(Assets.star, DecoKind)
             s.setPosition(20 + i * 30, 30 + (i % 2) * 10)
@@ -73,7 +92,6 @@ namespace Game {
         info.showLife(false)
         titleFairy = sprites.create(Assets.fairyR[0], DecoKind)
         titleFairy.setPosition(80, 78)
-        animation.runImageAnimation(titleFairy, Assets.fairyR, 150, true)
         for (let i = 0; i < 6; i++) {
             const s = sprites.create(Assets.star, DecoKind)
             s.setPosition(15 + i * 26, 72 + (i % 2) * 16)
@@ -82,13 +100,20 @@ namespace Game {
         music.powerUp.play()
     }
 
-    function beginAdventure() {
+    function beginAdventure(straightToBoss: boolean) {
         state = State.Transition
         control.runInParallel(() => {
             music.magicWand.play()
-            Story.tell(Story.intro)
             info.setScore(0)
-            startLevel(0)
+            if (straightToBoss) {
+                // Raccourci (HAUT + A sur le titre) : directement au boss
+                levelIndex = chosenLevel
+                Story.tell(Story.bossIntro[levelIndex])
+                startBoss(levelIndex)
+                return
+            }
+            if (chosenLevel === 0) Story.tell(Story.intro)
+            startLevel(chosenLevel)
         })
     }
 
@@ -108,6 +133,20 @@ namespace Game {
                 const s = sprites.create(Assets.heart, HeartKind)
                 s.setPosition(x, y)
                 s.z = 3
+            } else if (sp.kind === "p") {
+                const s = sprites.create(Assets.potionItem, PotionKind)
+                s.setPosition(x, y)
+                s.z = 3
+            } else if (sp.kind === "m") {
+                const s = sprites.create(Assets.magicMushroom, MushroomKind)
+                s.x = x
+                s.bottom = bottom
+                s.z = 3
+            } else if (sp.kind === "?") {
+                const s = sprites.create(Puzzles.gateImage(), Puzzles.GateKind)
+                s.x = x
+                s.bottom = bottom
+                s.z = 2
             } else if (sp.kind === "F") {
                 const s = sprites.create(Assets.portal, PortalKind)
                 s.x = x
@@ -157,6 +196,29 @@ namespace Game {
             pause(600)
             Story.tell(Story.bossIntro[levelIndex])
             startBoss(levelIndex)
+        })
+    }
+
+    // La porte du Hibou Savant : une énigme pour l'ouvrir
+    function onGate(gate: Sprite) {
+        if (state !== State.Playing) return
+        state = State.Transition
+        Player.disable()
+        console.log("PUZZLE")
+        control.runInParallel(() => {
+            music.magicWand.play()
+            const ok = Puzzles.run(levelIndex)
+            if (ok) {
+                gate.destroy(effects.spray, 400)
+                music.magicWand.play()
+                console.log("PUZZLE SOLVED")
+                showBanner("La porte s'ouvre !", 2000)
+            } else if (Player.sprite) {
+                Player.sprite.x = gate.x - 24
+                Player.sprite.vx = 0
+            }
+            Player.enable()
+            state = State.Playing
         })
     }
 
@@ -210,12 +272,28 @@ namespace Game {
         onPortal()
     })
 
-    sprites.onOverlap(Player.Kind, Enemies.Kind, (p, enemy) => {
+    sprites.onOverlap(Player.Kind, Puzzles.GateKind, (_p, gate) => {
+        onGate(gate)
+    })
+
+    sprites.onOverlap(Player.Kind, PotionKind, (_p, potion) => {
         if (state !== State.Playing) return
-        // Sauter sur un ennemi l'élimine aussi
-        if (p.vy > 0 && p.bottom < enemy.y + 2) {
+        potion.destroy(effects.spray, 200)
+        Player.drinkPotion()
+    })
+
+    sprites.onOverlap(Player.Kind, MushroomKind, (_p, mushroom) => {
+        if (state !== State.Playing) return
+        mushroom.destroy(effects.spray, 200)
+        Player.eatMushroom()
+    })
+
+    sprites.onOverlap(Player.Kind, Enemies.Kind, (p, enemy) => {
+        if (state !== State.Playing && state !== State.Boss) return
+        // Super Lila écrase tout ; sauter sur un ennemi l'élimine aussi
+        if (Player.isSuper() || (p.vy > 0 && p.bottom < enemy.y + 2)) {
             Enemies.kill(enemy)
-            Player.bounce()
+            if (!Player.isSuper()) Player.bounce()
         } else {
             Player.hurt(enemy.x)
         }
@@ -263,7 +341,7 @@ namespace Game {
                 Autoplay.start()
                 showBanner("MODE DÉMO", 3000)
             }
-            beginAdventure()
+            beginAdventure(controller.up.isPressed())
         } else if (state === State.Ending) {
             control.reset()
         } else Player.jumpPressed()
@@ -273,8 +351,12 @@ namespace Game {
             Player.jumpPressed()
     })
     controller.B.onEvent(ControllerButtonEvent.Pressed, () => {
-        if (state === State.Playing || state === State.Boss)
+        if (state === State.Playing || state === State.Boss) {
             Player.magicPressed()
+        } else if (state === State.Title) {
+            chosenLevel = (chosenLevel + 1) % Levels.levels.length
+            music.baDing.play()
+        }
     })
 
     // ---------- Boucle principale ----------
@@ -294,6 +376,7 @@ namespace Game {
         if ((state === State.Title || state === State.Ending) && titleFairy) {
             const baseY = state === State.Title ? 66 : 78
             titleFairy.y = baseY + Math.sin(now() / 300) * 4
+            titleFairy.setImage(Assets.fairyR[Math.idiv(now(), 150) % 2])
         }
     })
 
@@ -304,8 +387,14 @@ namespace Game {
             screen.printCenter("LILA LA FÉE", 26, 5, bigFont)
             screen.printCenter("Une aventure magique", 42, 1, image.font5)
             if (Math.idiv(now(), 500) % 2 === 0) {
-                screen.printCenter("Appuie sur A", 100, 1, image.font8)
+                screen.printCenter("Appuie sur A", 98, 1, image.font8)
             }
+            screen.printCenter(
+                `B : niveau ${chosenLevel + 1} / ${Levels.levels.length}`,
+                110,
+                1,
+                image.font5,
+            )
         }
         if (state === State.Ending) {
             screen.fillRect(0, 16, 160, 46, 15)
@@ -327,6 +416,13 @@ namespace Game {
             screen.fillRect(x, 50, w, 16, 15)
             screen.drawRect(x, 50, w, 16, 5)
             screen.printCenter(bannerText, 54, 5, image.font8)
+        }
+        if (state === State.Playing || state === State.Boss) {
+            const hud = Player.hudText()
+            if (hud.length > 0) {
+                screen.fillRect(0, 109, hud.length * 6 + 4, 11, 15)
+                screen.print(hud, 2, 111, 5, image.font8)
+            }
         }
         Bosses.drawHud()
     })

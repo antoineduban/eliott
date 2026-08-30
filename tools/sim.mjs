@@ -12,6 +12,8 @@
 //
 // Touches : ArrowLeft/Right/Up/Down, z (bouton A), x (bouton B), Enter (menu)
 //
+// SIM_URL=<url> (défaut http://localhost:7001/, le jeu Lila) : page du simulateur ;
+// le jeu de course (dossier course/) est servi sur http://localhost:7002/.
 // SIM_SPEED=<k> (défaut 1) accélère le temps du simulateur d'un facteur k :
 // l'horloge et les minuteries de la page sont mises à l'échelle, le jeu tourne
 // k fois plus vite (tant que le CPU suit). Les durées des commandes sont en
@@ -24,10 +26,9 @@ import { chromium } from "playwright-core"
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const shotsDir = path.join(here, "shots")
-const url = process.env.SIM_URL || "http://localhost:7001/"
-
 export async function openSim(options = {}) {
     const speed = options.speed ?? Number(process.env.SIM_SPEED || 1)
+    const url = options.url || process.env.SIM_URL || "http://localhost:7001/"
     fs.mkdirSync(shotsDir, { recursive: true })
     const browser = await chromium.launch({ headless: true })
     const page = await browser.newPage({

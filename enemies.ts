@@ -1,14 +1,30 @@
 // ============================================
-// ENNEMIS : crapauds, champignons, gargouilles (marchent)
-//           chauves-souris, fantômes (volent)
+// ENNEMIS : crapauds, champignons, gargouilles, crabes, bonshommes de neige,
+//           boules de lave (marchent) ; chauves-souris, fantômes, mouettes,
+//           hiboux, oiseaux de feu (volent)
 // ============================================
 
 // biome-ignore lint/correctness/noUnusedVariables: utilisé par main.ts
 namespace Enemies {
     export const Kind = SpriteKind.create()
 
-    const WALK_SPEED = 22
     const FLY_RANGE = 40
+
+    // Les ennemis sont un peu plus rapides dans les mondes suivants
+    function walkSpeed(theme: number): number {
+        if (theme === Assets.THEME_FOREST) return 22
+        if (theme === Assets.THEME_CAVE) return 24
+        if (theme === Assets.THEME_ICE) return 24
+        if (theme === Assets.THEME_VOLCANO) return 30
+        return 26
+    }
+
+    function flySpeed(theme: number): number {
+        if (theme === Assets.THEME_VOLCANO) return 1.5
+        if (theme === Assets.THEME_BEACH || theme === Assets.THEME_ICE)
+            return 1.3
+        return 1.1
+    }
 
     class Enemy {
         sprite: Sprite
@@ -16,18 +32,25 @@ namespace Enemies {
         dir: number
         baseX: number
         baseY: number
+        speed: number
         t: number
         framesL: Image[]
         framesR: Image[]
         frame: number
         frameT: number
 
-        constructor(sprite: Sprite, flying: boolean, frames: Image[]) {
+        constructor(
+            sprite: Sprite,
+            flying: boolean,
+            frames: Image[],
+            speed: number,
+        ) {
             this.sprite = sprite
             this.flying = flying
             this.dir = 1
             this.baseX = sprite.x
             this.baseY = sprite.y
+            this.speed = speed
             this.t = Math.random() * 6
             this.framesL = frames
             this.framesR = []
@@ -62,7 +85,7 @@ namespace Enemies {
         s.bottom = bottom
         s.ay = 350
         s.z = 5
-        list.push(new Enemy(s, false, frames))
+        list.push(new Enemy(s, false, frames, walkSpeed(theme)))
     }
 
     export function spawnFlyer(x: number, y: number, theme: number) {
@@ -71,7 +94,7 @@ namespace Enemies {
         s.setPosition(x, y)
         s.z = 5
         s.setFlag(SpriteFlag.GhostThroughWalls, true)
-        list.push(new Enemy(s, true, frames))
+        list.push(new Enemy(s, true, frames, flySpeed(theme)))
     }
 
     export function update(dt: number) {
@@ -80,9 +103,10 @@ namespace Enemies {
             e.t += dt
             if (e.flying) {
                 // va-et-vient horizontal + petit vol ondulé
-                s.x = e.baseX + Math.sin(e.t * 1.1) * FLY_RANGE
+                const k = e.speed
+                s.x = e.baseX + Math.sin(e.t * k) * FLY_RANGE
                 s.y = e.baseY + Math.sin(e.t * 4) * 5
-                e.dir = Math.cos(e.t * 1.1) >= 0 ? 1 : -1
+                e.dir = Math.cos(e.t * k) >= 0 ? 1 : -1
             } else {
                 // demi-tour contre un mur ou au bord d'une plateforme
                 if (s.isHittingTile(CollisionDirection.Left)) e.dir = 1
@@ -91,7 +115,7 @@ namespace Enemies {
                     const aheadX = e.dir > 0 ? s.right + 2 : s.left - 2
                     if (!Levels.isWall(aheadX, s.bottom + 3)) e.dir = -e.dir
                 }
-                s.vx = e.dir * WALK_SPEED
+                s.vx = e.dir * e.speed
             }
 
             // animation

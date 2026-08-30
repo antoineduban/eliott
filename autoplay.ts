@@ -35,6 +35,14 @@ namespace Autoplay {
         controller.right.setPressed(dir > 0)
     }
 
+    // Y a-t-il du sol quelque part sous ce point ?
+    function groundBelow(x: number, y: number): boolean {
+        for (let yy = y; yy < Levels.heightPx; yy += Levels.TILE) {
+            if (Levels.isWall(x, yy)) return true
+        }
+        return false
+    }
+
     export function update() {
         if (!active) return
         const now = control.millis()
@@ -66,20 +74,46 @@ namespace Autoplay {
         const onGround = s.isHittingTile(CollisionDirection.Bottom)
 
         if (st === Game.State.Playing) {
+            // Si le portail est derrière nous (on l'a survolé), on revient
+            const portals = sprites.allOfKind(Game.PortalKind)
+            if (portals.length > 0 && portals[0].x < s.x - 4) {
+                setMove(-1)
+                setA(false)
+                return
+            }
             setMove(1)
             const aheadX = s.right + 10
             const gapAhead =
                 !Levels.isWall(aheadX, s.bottom + 6) &&
                 !Levels.isWall(aheadX + 16, s.bottom + 6)
+            const spikesAhead =
+                Levels.tileIndexAt(aheadX, s.bottom - 2) === Levels.SPIKES ||
+                Levels.tileIndexAt(aheadX + 8, s.bottom - 2) === Levels.SPIKES
             const wallAhead =
                 Levels.isWall(s.right + 3, s.y) ||
                 s.isHittingTile(CollisionDirection.Right)
-            if (onGround && (gapAhead || wallAhead) && now >= nextJumpAt) {
-                nextJumpAt = now + 400
-                holdAUntil = now + 900
-                setA(true)
+            if (Player.form === Player.FORM_BUTTERFLY) {
+                // En papillon : A maintenu fait voler. On vole seulement
+                // au-dessus des dangers, sans monter trop haut.
+                const overDanger =
+                    !onGround && !groundBelow(s.x + 6, s.bottom + 2)
+                setA(
+                    (gapAhead || spikesAhead || wallAhead || overDanger) &&
+                        s.y > 40,
+                )
+                holdAUntil = 0
+            } else {
+                if (
+                    onGround &&
+                    (gapAhead || spikesAhead || wallAhead) &&
+                    now >= nextJumpAt
+                ) {
+                    nextJumpAt = now + 400
+                    holdAUntil = now + 900
+                    setA(true)
+                }
+                if (now >= holdAUntil) setA(false)
             }
-            if (now >= holdAUntil) setA(false)
             // magie si un ennemi est devant
             for (const e of sprites.allOfKind(Enemies.Kind)) {
                 if (
@@ -118,7 +152,12 @@ namespace Autoplay {
                     danger = true
             }
             const bossHigh = b.y < s.y - 14 && dist < 70
-            if (onGround && (danger || bossHigh || now >= nextJumpAt)) {
+            // le boss fonce sur nous (crabe) ou avance (golem) : sauter par-dessus
+            const bossClose = dist < 42 && Math.abs(b.y - s.y) < 28
+            if (
+                onGround &&
+                (danger || bossHigh || bossClose || now >= nextJumpAt)
+            ) {
                 nextJumpAt = now + 1800
                 holdAUntil = now + (bossHigh ? 250 : 650)
                 setA(true)
