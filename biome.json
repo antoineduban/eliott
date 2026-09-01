@@ -1,7 +1,14 @@
 {
     "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
     "files": {
-        "includes": ["*.ts", "course/*.ts", "tools/*.mjs", "!course/font.ts"],
+        "includes": [
+            "*.ts",
+            "course/*.ts",
+            "odyssee/*.ts",
+            "tools/*.mjs",
+            "!course/font.ts",
+            "!odyssee/font.ts"
+        ],
         "ignoreUnknown": true
     },
     "vcs": {

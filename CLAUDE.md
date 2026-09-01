@@ -4,7 +4,7 @@ MakeCode Arcade project (static TypeScript) for a kid's handheld: an **ELECFREAK
 (STM32F412 board, MakeCode hardware variant `stm32f401`). On USB it appears as "Arcade (app)"
 (VID `0x0483` / PID `0x5799`) while a MakeCode game runs, and as ELECFREAKS "Arcade"
 (VID `0x26AC` / PID `0x1043`) in bootloader mode.
-The repo holds **two separate MakeCode projects** (one binary each; the console holds one game at a time):
+The repo holds **three separate MakeCode projects** (one binary each; the console holds one game at a time):
 - the root: **"Lila la fée"**, a French platformer for a 6-year-old: 6 levels, 6 bosses, potions with random
   effects, mushrooms that transform Lila, and one logic puzzle per level (the owl's gate, `puzzles.ts`)
   (see `README.md` for the player-facing description and file map);
@@ -14,7 +14,18 @@ The repo holds **two separate MakeCode projects** (one binary each; the console 
   `node tools/deploy.mjs course/built/stm32f401/binary.uf2`. Its `font.ts` is a symlink to the root one.
   Test with `SIM_SPEED=4 node tools/play-race.mjs 400 4` (demo bot: DOWN + A on the title; log lines
   `RACE n START`, `CRASH life=n`, `RESTART`, `FINISH n score=s`, `CHAMPION`). Difficulty lives in
-  `course/tracks.ts` (speed, `gap` between obstacle waves — keep `gap / speed` ≥ 1.2 s, double-wave chance).
+  `course/tracks.ts` (speed, `gap` between obstacle waves — keep `gap / speed` ≥ 1.2 s, double-wave chance);
+- `odyssee/`: **"L'Odyssée d'Ulysse"**, a reskin of the Lila engine (same files, states, log lines and
+  title-screen shortcuts): Ulysses shoots arrows (B), collects gold coins, amphoras = potions, lotus
+  flowers = transformations (eagle flies / satyr jumps / centaur runs), the puzzle gate is Athena's owl.
+  6 islands / 6 bosses: Polyphème (crab-style charge + lobs), Reine des Harpies (witch-style), Circé
+  (shadow-king-style teleport), Reine des Sirènes (aimed notes + dives), Atlas (yeti-style quake),
+  Poséidon (floats, lobs lightning ×2, summons sea-serpent walkers). Theme 5 (storm deck) is the
+  slippery one. Serve with `makecode serve -p 7003` from inside `odyssee/`; test with
+  `SIM_SPEED=4 node tools/play-odyssee.mjs 400 5` (same demo bot & log lines as Lila, `STAR` = coins);
+  `node tools/checklevels.mjs odyssee/levels.ts` checks its levels (layout geometry reuses Lila's six
+  verified levels, so both games share the same difficulty curve). Its `font.ts` is a symlink too —
+  **no capital `Î`/`Œ` anywhere**, only the lowercase accents patched by `font.ts` (use "L'île", "oeil").
 The two older games are kept in `archive/` and are **not** compiled (not listed in any `pxt.json`).
 
 Everything below was learned the hard way on 2026-08-29. Trust it over guesses.
@@ -79,9 +90,10 @@ from the sim's `serial` postMessages), `reload`.
   Potion/mushroom effects are random, so run twice before concluding.
 - Title-screen shortcuts: **B** cycles the start level, **UP + A** goes straight to that level's boss
   (skips the level; used to watch boss attacks with Lila idle: `sim.mjs "... down ArrowUp; press z; up ArrowUp; ..."`).
-- `node tools/checklevels.mjs` validates `levels.ts` (row widths, hazard row, platform/flyer placement
-  rules below). Run it after touching a level; building level rows from explicit column coordinates in a
-  script is far more reliable than editing the ASCII by eye.
+- `node tools/checklevels.mjs [path]` validates `levels.ts` (row widths, hazard row, platform/flyer
+  placement rules below; default: the root file, pass `odyssee/levels.ts` for the Ulysses game). Run it
+  after touching a level; building level rows from explicit column coordinates in a script is far more
+  reliable than editing the ASCII by eye.
 - **Look at the screenshots** (Read the PNG) — most bugs found today were only visible in images:
   font glyphs missing, dialog lines overlapping, a sprite stuck in a pit, wrong HUD font.
 - Manual scenario example (story pages need one A press each):

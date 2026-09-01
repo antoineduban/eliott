@@ -2,14 +2,19 @@
 // sous le sol, et la règle "jamais de plateforme au-dessus d'un trou, de
 // piques ou de la case qui les précède" (on se cognerait la tête en sautant).
 //
-// Usage : node tools/checklevels.mjs
+// Usage : node tools/checklevels.mjs [chemin/vers/levels.ts]
+//   (défaut : le levels.ts de Lila à la racine ; passer odyssee/levels.ts
+//    pour l'Odyssée d'Ulysse)
 
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 const here = path.dirname(fileURLToPath(import.meta.url))
-const src = fs.readFileSync(path.join(here, "..", "levels.ts"), "utf8")
+const file = process.argv[2]
+    ? path.resolve(process.argv[2])
+    : path.join(here, "..", "levels.ts")
+const src = fs.readFileSync(file, "utf8")
 
 const levels = []
 const re = /new LevelDef\(\s*"([^"]+)",\s*[^,]+,\s*\[([\s\S]*?)\]\s*\)/g

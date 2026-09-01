@@ -1,0 +1,64 @@
+// Lance le mode démo de l'Odyssée d'Ulysse (dossier odyssee/, simulateur sur
+// le port 7003) et suit sa progression via la console du jeu.
+//
+// Usage : node tools/play-odyssee.mjs [durée max de jeu en s] [intervalle captures en s] [niveau de départ 1-6]
+//
+// Le serveur doit tourner : cd odyssee && ../node_modules/.bin/makecode serve -p 7003
+// Le temps du jeu est accéléré (SIM_SPEED, défaut 4). Le script s'arrête sur
+// VICTOIRE ou à la fin du temps imparti.
+
+import { openSim } from "./sim.mjs"
+
+const maxSeconds = Number(process.argv[2] || 600)
+const shotEvery = Number(process.argv[3] || 30)
+const startLevel = Number(process.argv[4] || 1)
+const speed = Number(process.env.SIM_SPEED || 4)
+
+const sim = await openSim({
+    speed,
+    url: process.env.SIM_URL || "http://localhost:7003/",
+})
+try {
+    await sim.wait(2000)
+    // Sur l'écran titre, B choisit le niveau de départ
+    for (let i = 1; i < startLevel; i++) {
+        await sim.press("x")
+        await sim.wait(150)
+    }
+    await sim.down("ArrowDown")
+    await sim.wait(100)
+    await sim.press("z")
+    await sim.wait(100)
+    await sim.up("ArrowDown")
+
+    const realStart = Date.now()
+    let gameSeconds = 0
+    let lastShot = 0
+    let shotIndex = 0
+    let allLog = ""
+    let done = false
+    while (!done && gameSeconds < maxSeconds) {
+        await sim.wait(1000)
+        gameSeconds += 1
+        const log = await sim.serial()
+        if (log) {
+            process.stdout.write(log.replace(/^(?=.)/gm, `[${gameSeconds}s] `))
+            allLog += log
+        }
+        if (gameSeconds - lastShot >= shotEvery) {
+            lastShot = gameSeconds
+            shotIndex++
+            const name = `ody-${String(shotIndex).padStart(2, "0")}-${gameSeconds}s`
+            await sim.shot(name)
+            console.log(`[shot ${name}]`)
+        }
+        if (/VICTOIRE/.test(allLog)) done = true
+    }
+    await sim.shot("ody-final")
+    const realSeconds = (Date.now() - realStart) / 1000
+    console.log(
+        `${done ? "=== Partie terminée ===" : "=== Temps écoulé ==="} ${gameSeconds}s de jeu en ${realSeconds.toFixed(0)}s réels (x${(gameSeconds / realSeconds).toFixed(1)})`,
+    )
+} finally {
+    await sim.close()
+}
